@@ -1,0 +1,19 @@
+import type { Metadata } from "next";
+import "./globals.css";
+
+export const metadata: Metadata = {
+  title: "촌스테이",
+  description: "일회성 관광을 지속가능한 생활인구 유입으로 전환하는 체류형 여행 서비스",
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="ko">
+      <body>{children}</body>
+    </html>
+  );
+}
