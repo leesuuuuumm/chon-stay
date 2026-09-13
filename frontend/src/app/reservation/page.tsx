@@ -21,14 +21,19 @@ export default function ReservationPage() {
   };
 
   return (
-    <Shell withBottomPadding>
+    <Shell withBottomPadding size="medium">
       <AppHeader title="신청 장바구니" stage="체험" />
       <div className="flex-1 space-y-3 px-5 py-5">
         {cart.length === 0 && (
           <div className="py-16 text-center text-sm text-ink-faint">
             담긴 체험·숙박이 없어요.
-            <div className="mt-4">
-              <Button variant="outline" onClick={() => router.push("/villages")}>
+            <div className="mt-4 flex justify-center">
+              <Button
+                variant="outline"
+                fullWidth={false}
+                className="px-8"
+                onClick={() => router.push("/villages")}
+              >
                 마을 둘러보기
               </Button>
             </div>
@@ -56,7 +61,7 @@ export default function ReservationPage() {
       </div>
 
       {cart.length > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-app border-t border-line bg-sand px-5 py-4">
+        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-sand px-5 py-4 md:static md:mx-5 md:mb-5 md:rounded-2xl md:border md:bg-white md:px-6 md:py-5 md:shadow-card">
           <div className="mb-3 flex items-center justify-between">
             <span className="font-semibold">합계</span>
             <span className="text-lg font-bold">{total.toLocaleString()}원</span>

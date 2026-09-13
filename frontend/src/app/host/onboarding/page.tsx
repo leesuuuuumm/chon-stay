@@ -15,7 +15,7 @@ export default function HostOnboardingPage() {
   return (
     <>
       <AppHeader title="마을 정보 등록" showBack={false} />
-      <div className="flex flex-1 flex-col px-5 py-6">
+      <div className="flex flex-1 flex-col px-5 py-6 md:my-10 md:flex-none md:rounded-2xl md:border md:border-line md:bg-white md:px-10 md:py-10 md:shadow-card">
         <h2 className="text-2xl font-bold leading-snug">
           정보를 어떻게
           <br />

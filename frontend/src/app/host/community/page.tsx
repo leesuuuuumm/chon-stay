@@ -22,7 +22,7 @@ export default function HostCommunityPage() {
   return (
     <>
       <AppHeader title="리뷰·커뮤니티 관리" showBack={false} />
-      <div className="space-y-5 px-5 py-5">
+      <div className="space-y-5 px-5 py-5 md:px-8 md:py-8 lg:grid lg:grid-cols-[1.3fr_1fr] lg:items-start lg:gap-8 lg:space-y-0">
         <div>
           <p className="mb-2 text-sm font-semibold text-ink-soft">리뷰·게시판</p>
           <div className="space-y-3">
@@ -57,58 +57,60 @@ export default function HostCommunityPage() {
           </div>
         </div>
 
-        <div>
-          <p className="mb-2 text-sm font-semibold text-ink-soft">방문자 게시판</p>
-          <Card className="flex items-center justify-between">
-            <span className="text-sm">재방문자 소통 · 게시글 {COMMUNITY_POSTS[0].count + notices.length}</span>
-          </Card>
-          {notices.map((n, i) => (
-            <Card key={i} className="mt-2 text-sm text-ink-soft">
-              {n}
+        <div className="space-y-3 md:space-y-4">
+          <div>
+            <p className="mb-2 text-sm font-semibold text-ink-soft">방문자 게시판</p>
+            <Card className="flex items-center justify-between">
+              <span className="text-sm">재방문자 소통 · 게시글 {COMMUNITY_POSTS[0].count + notices.length}</span>
             </Card>
-          ))}
+            {notices.map((n, i) => (
+              <Card key={i} className="mt-2 text-sm text-ink-soft">
+                {n}
+              </Card>
+            ))}
+          </div>
+
+          {showNoticeForm ? (
+            <Card>
+              <textarea
+                value={noticeDraft}
+                onChange={(e) => setNoticeDraft(e.target.value)}
+                placeholder="마을 소식을 알려주세요"
+                className="h-20 w-full resize-none text-sm outline-none"
+              />
+              <div className="mt-2 flex justify-end gap-2">
+                <button
+                  onClick={() => {
+                    setShowNoticeForm(false);
+                    setNoticeDraft("");
+                  }}
+                  className="rounded-lg border border-line px-3 py-2 text-xs font-semibold text-ink-soft"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={() => {
+                    if (noticeDraft.trim()) setNotices((n) => [noticeDraft.trim(), ...n]);
+                    setShowNoticeForm(false);
+                    setNoticeDraft("");
+                  }}
+                  className="rounded-lg bg-clay-500 px-3 py-2 text-xs font-semibold text-white"
+                >
+                  게시
+                </button>
+              </div>
+            </Card>
+          ) : (
+            <button
+              onClick={() => setShowNoticeForm(true)}
+              className="flex h-12 w-full items-center justify-center rounded-xl bg-clay-500 text-sm font-semibold text-white"
+            >
+              + 공지 작성
+            </button>
+          )}
+
+          <p className="pt-2 text-center text-xs text-ink-faint">게시판 활성화 = 관계인구 전환율 ↑</p>
         </div>
-
-        {showNoticeForm ? (
-          <Card>
-            <textarea
-              value={noticeDraft}
-              onChange={(e) => setNoticeDraft(e.target.value)}
-              placeholder="마을 소식을 알려주세요"
-              className="h-20 w-full resize-none text-sm outline-none"
-            />
-            <div className="mt-2 flex justify-end gap-2">
-              <button
-                onClick={() => {
-                  setShowNoticeForm(false);
-                  setNoticeDraft("");
-                }}
-                className="rounded-lg border border-line px-3 py-2 text-xs font-semibold text-ink-soft"
-              >
-                취소
-              </button>
-              <button
-                onClick={() => {
-                  if (noticeDraft.trim()) setNotices((n) => [noticeDraft.trim(), ...n]);
-                  setShowNoticeForm(false);
-                  setNoticeDraft("");
-                }}
-                className="rounded-lg bg-clay-500 px-3 py-2 text-xs font-semibold text-white"
-              >
-                게시
-              </button>
-            </div>
-          </Card>
-        ) : (
-          <button
-            onClick={() => setShowNoticeForm(true)}
-            className="flex h-12 w-full items-center justify-center rounded-xl bg-clay-500 text-sm font-semibold text-white"
-          >
-            + 공지 작성
-          </button>
-        )}
-
-        <p className="pt-2 text-center text-xs text-ink-faint">게시판 활성화 = 관계인구 전환율 ↑</p>
       </div>
     </>
   );

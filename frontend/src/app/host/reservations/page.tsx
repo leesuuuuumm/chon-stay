@@ -15,9 +15,10 @@ export default function HostReservationsPage() {
   return (
     <>
       <AppHeader title="예약 승인/거절 관리" showBack={false} />
-      <div className="space-y-3 px-5 py-5">
-        <h2 className="text-lg font-bold">예약 신청 {pending.length}</h2>
+      <div className="space-y-4 px-5 py-5 md:px-8 md:py-8">
+        <h2 className="text-lg font-bold md:text-xl">예약 신청 {pending.length}</h2>
 
+        <div className="grid gap-3 md:grid-cols-2 md:gap-4">
         {requests.map((req) => (
           <Card key={req.id} className={req.status !== "pending" ? "opacity-60" : ""}>
             <p className="font-semibold">
@@ -49,6 +50,7 @@ export default function HostReservationsPage() {
             )}
           </Card>
         ))}
+        </div>
 
         <p className="pt-4 text-center text-xs text-ink-faint">
           정원 초과 시 자동 마감 · 승인 시 사용자에게 확정 알림

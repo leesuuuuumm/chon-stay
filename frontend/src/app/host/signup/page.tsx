@@ -14,7 +14,7 @@ export default function HostSignupPage() {
   return (
     <>
       <AppHeader title="마을 계정 가입·인증" showBack={false} />
-      <div className="flex flex-1 flex-col px-5 py-6">
+      <div className="flex flex-1 flex-col px-5 py-6 md:my-10 md:flex-none md:rounded-2xl md:border md:border-line md:bg-white md:px-10 md:py-10 md:shadow-card">
         <h2 className="text-2xl font-bold leading-snug">
           마을 대표자
           <br />
