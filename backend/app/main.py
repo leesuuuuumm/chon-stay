@@ -2,12 +2,20 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers import users, villages, houses, matching
+from app.core.database import Base, engine
+from app.models import user
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI(
     title="촌스테이 API",
     description="실측 이동 데이터 기반 지역 연계 관광 거점 발굴 및 체류형 생활인구 유입 서비스",
     version="0.1.0",
 )
+
+Base.metadata.create_all(bind = engine)
 
 app.add_middleware(
     CORSMiddleware,
