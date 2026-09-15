@@ -16,7 +16,7 @@ def get_current_user(token: str = Depends(oauth2_scheme),db:Session = Depends(ge
 
     user_id = payload.get("sub")
     user = db.query(User).filter(User.id == int(user_id)).first()
-    if user in None:
+    if user is None:
         raise HTTPException(status_code = status.HTTP_401_UNAUTHORIZED, detail = "사용자를 찾을 수 없습니다.")
 
     return user

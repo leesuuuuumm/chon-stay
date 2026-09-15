@@ -2,12 +2,16 @@ import Link from "next/link";
 import Badge from "@/components/ui/Badge";
 import Card from "@/components/ui/Card";
 import PhotoPlaceholder from "@/components/PhotoPlaceholder";
+import AuthNavStatus from "@/components/AuthNavStatus";
 
 export default function Home() {
   return (
     <main className="min-h-screen bg-sand">
       <div className="mx-auto max-w-3xl px-6 py-16">
-        <Badge tone="clay">발견 → 체험 → 관계</Badge>
+        <div className="flex items-center justify-between">
+          <Badge tone="clay">발견 → 체험 → 관계</Badge>
+          <AuthNavStatus />
+        </div>
         <h1 className="mt-4 text-4xl font-extrabold leading-tight">
           촌스테이
         </h1>

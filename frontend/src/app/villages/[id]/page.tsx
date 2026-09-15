@@ -31,6 +31,7 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
   const villageCartItems = cart.filter((c) => c.villageId === village.id);
   const cartCount = villageCartItems.length;
   const cartTotal = villageCartItems.reduce((sum, item) => sum + item.price, 0);
+  const latestStat = village.populationStats[village.populationStats.length - 1];
 
   const autoRecommend = () => {
     const exp = village.experiences[0];
@@ -78,6 +79,12 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
               ))}
               {village.urgencyLabel && <Badge tone="clay">{village.urgencyLabel}</Badge>}
             </div>
+            {latestStat && (
+              <p className="mt-2 text-xs text-ink-faint">
+                {latestStat.statYear}년 생활인구 {latestStat.population.toLocaleString()}명 · 빈집{" "}
+                {latestStat.vacantHouses}채
+              </p>
+            )}
           </div>
 
           <div className="flex gap-5 border-b border-line px-5 md:px-8 lg:px-0">
@@ -108,7 +115,7 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
                         <div className="min-w-0 flex-1">
                           <p className="font-semibold">{exp.title}</p>
                           <p className="text-sm text-ink-soft">
-                            {exp.season} · {exp.price.toLocaleString()}원
+                            {exp.season} · {exp.price.toLocaleString()}원 · 정원 {exp.capacity}명
                           </p>
                         </div>
                         <Button
@@ -163,7 +170,7 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
                         <div className="min-w-0 flex-1">
                           <p className="font-semibold">{lodge.title}</p>
                           <p className="text-sm text-ink-soft">
-                            {lodge.unit} · {lodge.price.toLocaleString()}원
+                            {lodge.unit} · {lodge.price.toLocaleString()}원 · 최대 {lodge.capacity}인
                           </p>
                         </div>
                         <Button

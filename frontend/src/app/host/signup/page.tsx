@@ -5,11 +5,24 @@ import { useRouter } from "next/navigation";
 import AppHeader from "@/components/AppHeader";
 import Button from "@/components/ui/Button";
 
+// TODO: 백엔드에 마을(Village) 회원가입/로그인 API가 아직 없어 이 폼은 로컬 상태만 채우고
+// 백엔드 연동 없이 다음 단계로 넘어간다. ERD 기준 Village 테이블의
+// email/password/representativeName/phone/registrationNumber 필드에 대응한다.
 export default function HostSignupPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [form, setForm] = useState({
+    representativeName: "",
+    phone: "",
+    email: "",
+    password: "",
+    registrationNumber: "",
+  });
+
+  const update = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setForm((f) => ({ ...f, [key]: e.target.value }));
 
   return (
     <>
@@ -26,7 +39,47 @@ export default function HostSignupPage() {
           신뢰를 위해 검증이 필수입니다.
         </p>
 
-        <div className="mt-8 flex items-center justify-between rounded-xl border border-line bg-white px-4 py-3.5">
+        <div className="mt-6 space-y-3">
+          <input
+            required
+            value={form.representativeName}
+            onChange={update("representativeName")}
+            placeholder="대표자 성함"
+            className="w-full rounded-xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-clay-400"
+          />
+          <input
+            required
+            value={form.phone}
+            onChange={update("phone")}
+            placeholder="연락처"
+            className="w-full rounded-xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-clay-400"
+          />
+          <input
+            type="email"
+            required
+            value={form.email}
+            onChange={update("email")}
+            placeholder="이메일 (로그인 아이디)"
+            className="w-full rounded-xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-clay-400"
+          />
+          <input
+            type="password"
+            required
+            value={form.password}
+            onChange={update("password")}
+            placeholder="비밀번호"
+            className="w-full rounded-xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-clay-400"
+          />
+          <input
+            required
+            value={form.registrationNumber}
+            onChange={update("registrationNumber")}
+            placeholder="마을기업·사업자 등록번호"
+            className="w-full rounded-xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-clay-400"
+          />
+        </div>
+
+        <div className="mt-3 flex items-center justify-between rounded-xl border border-line bg-white px-4 py-3.5">
           <span className="text-sm font-medium">농어촌공사 등록마을 조회</span>
           <span className="text-leaf-500">✓</span>
         </div>

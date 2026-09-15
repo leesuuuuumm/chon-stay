@@ -6,6 +6,7 @@ import Shell from "@/components/Shell";
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
 import DesktopSectionNav from "@/components/DesktopSectionNav";
+import AuthNavStatus from "@/components/AuthNavStatus";
 import Card from "@/components/ui/Card";
 import { getVillage } from "@/lib/mockData";
 import { useAppStore } from "@/lib/store";
@@ -21,7 +22,7 @@ const NAV_ITEMS = [
 ];
 
 export default function MyPage() {
-  const { subscribedVillageIds, lastVisitedVillageId } = useAppStore();
+  const { subscribedVillageIds, lastVisitedVillageId, user } = useAppStore();
   const [showCoupons, setShowCoupons] = useState(false);
 
   const subscribed = subscribedVillageIds.map((id) => getVillage(id)).filter(Boolean);
@@ -29,11 +30,19 @@ export default function MyPage() {
 
   return (
     <>
-      <DesktopSectionNav items={NAV_ITEMS} />
+      <DesktopSectionNav items={NAV_ITEMS} right={<AuthNavStatus />} />
       <Shell withBottomPadding size="wide">
         <AppHeader title="내 마을" stage="관계" showBack={false} />
         <div className="flex-1 space-y-5 px-5 py-5 md:px-8 lg:grid lg:grid-cols-[1.4fr_1fr] lg:items-start lg:gap-8 lg:space-y-0">
           <div className="space-y-5">
+            {!user && (
+              <div className="flex items-center justify-between rounded-xl border border-line bg-white px-4 py-3.5 md:hidden">
+                <p className="text-sm text-ink-soft">로그인하면 다른 기기에서도 확인할 수 있어요</p>
+                <Link href="/login" className="shrink-0 text-sm font-semibold underline underline-offset-2">
+                  로그인
+                </Link>
+              </div>
+            )}
             {lastVillage && (
               <div className="rounded-xl bg-clay-100 px-4 py-3 text-sm text-clay-700">
                 🌱 지난번 다녀오신 <b>{lastVillage.name}</b>, 수확체험이 시작됐어요

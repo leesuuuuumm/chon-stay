@@ -5,6 +5,7 @@ import Shell from "@/components/Shell";
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
 import DesktopSectionNav from "@/components/DesktopSectionNav";
+import AuthNavStatus from "@/components/AuthNavStatus";
 import VillageCard from "@/components/VillageCard";
 import { VILLAGES } from "@/lib/mockData";
 import { useAppStore } from "@/lib/store";
@@ -34,7 +35,7 @@ export default function VillagesPage() {
 
   return (
     <>
-      <DesktopSectionNav items={NAV_ITEMS} />
+      <DesktopSectionNav items={NAV_ITEMS} right={<AuthNavStatus />} />
       <Shell withBottomPadding size="wide">
         <AppHeader title="마을 매칭 추천 결과" stage="발견" />
         <div className="flex items-center gap-2 px-5 pt-4 md:px-8">

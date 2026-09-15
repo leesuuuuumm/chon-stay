@@ -14,6 +14,7 @@ export type Experience = {
   title: string;
   season: string;
   price: number;
+  capacity: number;
 };
 
 export type Lodging = {
@@ -21,6 +22,14 @@ export type Lodging = {
   title: string;
   unit: string;
   price: number;
+  capacity: number;
+};
+
+// ERD의 PopulationStat: 마을별 연도별 생활인구·빈집 현황
+export type PopulationStat = {
+  statYear: number;
+  population: number;
+  vacantHouses: number;
 };
 
 export type TourSpot = {
@@ -52,7 +61,7 @@ export type Village = {
   interestTags: Interest[];
   urgency: "high" | "medium" | "low"; // 생활인구 유입 시급도
   urgencyLabel?: string;
-  populationIndex: number; // 인구감소 심각도 (100에 가까울수록 심각)
+  populationStats: PopulationStat[]; // 최신 연도가 마지막
   description: string;
   experiences: Experience[];
   lodgings: Lodging[];
@@ -71,15 +80,18 @@ export const VILLAGES: Village[] = [
     interestTags: ["농사체험", "자연체험"],
     urgency: "high",
     urgencyLabel: "방문객 유입이 특히 필요한 마을",
-    populationIndex: 88,
+    populationStats: [
+      { statYear: 2023, population: 612, vacantHouses: 34 },
+      { statYear: 2024, population: 578, vacantHouses: 39 },
+    ],
     description:
       "두레 정신으로 함께 농사짓는 마을. 모내기부터 장 담그기까지 사계절 체험이 이어집니다.",
     experiences: [
-      { id: "yangji-1", title: "모내기 체험", season: "봄", price: 20000 },
-      { id: "yangji-2", title: "전통 장 담그기", season: "가을", price: 30000 },
-      { id: "yangji-3", title: "가을 수확 체험", season: "가을", price: 25000 },
+      { id: "yangji-1", title: "모내기 체험", season: "봄", price: 20000, capacity: 8 },
+      { id: "yangji-2", title: "전통 장 담그기", season: "가을", price: 30000, capacity: 10 },
+      { id: "yangji-3", title: "가을 수확 체험", season: "가을", price: 25000, capacity: 12 },
     ],
-    lodgings: [{ id: "yangji-l1", title: "두레민박", unit: "1박", price: 60000 }],
+    lodgings: [{ id: "yangji-l1", title: "두레민박", unit: "1박", price: 60000, capacity: 4 }],
     tourSpots: [
       { id: "ts-1", title: "인근 저수지 둘레길", category: "관광지" },
       { id: "ts-2", title: "양지리 가을 축제", category: "축제" },
@@ -109,13 +121,16 @@ export const VILLAGES: Village[] = [
     matchPercent: 88,
     interestTags: ["휴양·힐링", "자연체험"],
     urgency: "medium",
-    populationIndex: 61,
+    populationStats: [
+      { statYear: 2023, population: 1204, vacantHouses: 18 },
+      { statYear: 2024, population: 1189, vacantHouses: 20 },
+    ],
     description: "소나무 숲에 둘러싸인 조용한 마을. 명상과 산책, 느린 하루를 위한 휴양 프로그램이 있습니다.",
     experiences: [
-      { id: "solmoe-1", title: "숲속 명상 프로그램", season: "사계절", price: 15000 },
-      { id: "solmoe-2", title: "다도 체험", season: "사계절", price: 18000 },
+      { id: "solmoe-1", title: "숲속 명상 프로그램", season: "사계절", price: 15000, capacity: 6 },
+      { id: "solmoe-2", title: "다도 체험", season: "사계절", price: 18000, capacity: 8 },
     ],
-    lodgings: [{ id: "solmoe-l1", title: "솔뫼 한옥스테이", unit: "1박", price: 80000 }],
+    lodgings: [{ id: "solmoe-l1", title: "솔뫼 한옥스테이", unit: "1박", price: 80000, capacity: 2 }],
     tourSpots: [{ id: "ts-3", title: "솔뫼 소나무 숲길", category: "관광지" }],
     reviews: [{ id: "r3", author: "박OO", rating: 5, content: "소나무 향기 가득한 힐링 그 자체였어요." }],
     notices: [],
@@ -128,10 +143,15 @@ export const VILLAGES: Village[] = [
     matchPercent: 81,
     interestTags: ["자연체험", "공방·수공예"],
     urgency: "low",
-    populationIndex: 42,
+    populationStats: [
+      { statYear: 2023, population: 2340, vacantHouses: 9 },
+      { statYear: 2024, population: 2365, vacantHouses: 8 },
+    ],
     description: "대나무 숲과 손끝의 정성이 만나는 마을. 죽공예 공방 체험이 인기입니다.",
-    experiences: [{ id: "daesup-1", title: "대나무 소품 공예", season: "사계절", price: 22000 }],
-    lodgings: [{ id: "daesup-l1", title: "대숲 게스트하우스", unit: "1박", price: 55000 }],
+    experiences: [
+      { id: "daesup-1", title: "대나무 소품 공예", season: "사계절", price: 22000, capacity: 10 },
+    ],
+    lodgings: [{ id: "daesup-l1", title: "대숲 게스트하우스", unit: "1박", price: 55000, capacity: 3 }],
     tourSpots: [{ id: "ts-4", title: "대숲 둘레길", category: "관광지" }],
     reviews: [],
     notices: [],

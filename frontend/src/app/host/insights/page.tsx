@@ -1,10 +1,14 @@
 import Link from "next/link";
 import AppHeader from "@/components/AppHeader";
 import Card from "@/components/ui/Card";
-import { HOST_INSIGHTS } from "@/lib/mockData";
+import { HOST_INSIGHTS, HOST_VILLAGE } from "@/lib/mockData";
 
 export default function HostInsightsPage() {
   const max = Math.max(...HOST_INSIGHTS.visitTrend);
+  const stats = HOST_VILLAGE.populationStats;
+  const latest = stats[stats.length - 1];
+  const previous = stats.length > 1 ? stats[stats.length - 2] : null;
+  const populationDelta = previous ? latest.population - previous.population : null;
 
   return (
     <>
@@ -41,7 +45,30 @@ export default function HostInsightsPage() {
           </div>
         </div>
 
-        <Card className="border-dashed text-sm text-ink-faint">인구 유입 지표 (빈집·인구 현황 연계)</Card>
+        <Card>
+          <p className="text-sm font-semibold text-ink-soft">인구 유입 지표 ({latest.statYear}년 기준)</p>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-xl font-extrabold md:text-2xl">
+                {latest.population.toLocaleString()}명
+              </p>
+              <p className="mt-1 text-xs text-ink-faint">
+                생활인구
+                {populationDelta !== null && (
+                  <span className={populationDelta < 0 ? "text-red-500" : "text-leaf-600"}>
+                    {" "}
+                    ({populationDelta > 0 ? "+" : ""}
+                    {populationDelta.toLocaleString()})
+                  </span>
+                )}
+              </p>
+            </div>
+            <div>
+              <p className="text-xl font-extrabold md:text-2xl">{latest.vacantHouses}채</p>
+              <p className="mt-1 text-xs text-ink-faint">빈집 현황 (체험·숙박 연계 가능)</p>
+            </div>
+          </div>
+        </Card>
 
         <Link
           href="/host/onboarding"

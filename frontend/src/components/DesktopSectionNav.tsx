@@ -5,8 +5,10 @@ import { usePathname } from "next/navigation";
 
 export default function DesktopSectionNav({
   items,
+  right,
 }: {
   items: { href: string; label: string }[];
+  right?: React.ReactNode;
 }) {
   const pathname = usePathname();
   return (
@@ -28,6 +30,7 @@ export default function DesktopSectionNav({
           </Link>
         );
       })}
+      {right && <div className="ml-auto">{right}</div>}
     </nav>
   );
 }

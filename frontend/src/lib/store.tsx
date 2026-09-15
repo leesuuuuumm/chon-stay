@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { Duration, Interest } from "./mockData";
+import type { AuthUser } from "./api";
 
 export type CartItem = {
   id: string;
@@ -19,6 +20,8 @@ type AppState = {
   cart: CartItem[];
   subscribedVillageIds: string[];
   lastVisitedVillageId: string | null;
+  accessToken: string | null;
+  user: AuthUser | null;
 };
 
 type AppContextValue = AppState & {
@@ -29,6 +32,8 @@ type AppContextValue = AppState & {
   clearCart: () => void;
   subscribeVillage: (villageId: string) => void;
   setLastVisitedVillage: (villageId: string) => void;
+  setAuth: (token: string, user: AuthUser) => void;
+  logout: () => void;
 };
 
 const STORAGE_KEY = "chonstay:v1";
@@ -39,6 +44,8 @@ const defaultState: AppState = {
   cart: [],
   subscribedVillageIds: [],
   lastVisitedVillageId: null,
+  accessToken: null,
+  user: null,
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -90,6 +97,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             : { ...s, subscribedVillageIds: [...s.subscribedVillageIds, villageId] }
         ),
       setLastVisitedVillage: (villageId) => setState((s) => ({ ...s, lastVisitedVillageId: villageId })),
+      setAuth: (accessToken, user) => setState((s) => ({ ...s, accessToken, user })),
+      logout: () => setState((s) => ({ ...s, accessToken: null, user: null })),
     }),
     [state]
   );
