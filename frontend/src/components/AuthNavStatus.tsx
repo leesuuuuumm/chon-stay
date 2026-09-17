@@ -16,7 +16,9 @@ export default function AuthNavStatus() {
 
   return (
     <div className="flex items-center gap-3 text-sm">
-      <span className="font-medium text-ink-soft">{user.username}님</span>
+      <Link href="/mypage" className="font-medium text-ink-soft hover:text-ink">
+        {user.username}님 마이페이지
+      </Link>
       <button
         onClick={logout}
         className="text-ink-faint underline underline-offset-2 hover:text-ink"

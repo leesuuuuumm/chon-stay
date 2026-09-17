@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import users, villages, houses, matching
+from app.routers import users, villages, houses, matching, listings
 from app.core.database import Base, engine
-from app.models import user
+from app.models import user, village, listing
 
 from dotenv import load_dotenv
 
@@ -28,6 +28,7 @@ app.add_middleware(
 app.include_router(users.router, prefix="/api/users", tags=["users"])
 app.include_router(villages.router, prefix="/api/villages", tags=["villages"])
 app.include_router(houses.router, prefix="/api/houses", tags=["houses"])
+app.include_router(listings.router, prefix="/api/listings", tags=["listings"])
 app.include_router(matching.router, prefix="/api/matching", tags=["matching"])
 
 

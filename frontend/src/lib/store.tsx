@@ -25,6 +25,7 @@ type AppState = {
 };
 
 type AppContextValue = AppState & {
+  hydrated: boolean;
   toggleInterest: (interest: Interest) => void;
   setDuration: (duration: Duration) => void;
   addToCart: (item: CartItem) => void;
@@ -76,6 +77,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<AppContextValue>(
     () => ({
       ...state,
+      hydrated,
       toggleInterest: (interest) =>
         setState((s) => ({
           ...s,
@@ -100,7 +102,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setAuth: (accessToken, user) => setState((s) => ({ ...s, accessToken, user })),
       logout: () => setState((s) => ({ ...s, accessToken: null, user: null })),
     }),
-    [state]
+    [state, hydrated]
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

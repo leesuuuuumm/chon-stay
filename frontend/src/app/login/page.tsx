@@ -26,7 +26,11 @@ function LoginContent() {
       const { access_token } = await login({ email, password });
       const user = await fetchMe(access_token);
       setAuth(access_token, user);
-      router.push(searchParams.get("redirect") || "/mypage");
+      if (user.is_admin) {
+        router.push("/admin");
+      } else {
+        router.push(searchParams.get("redirect") || "/mypage");
+      }
     } catch (err) {
       setError(extractErrorMessage(err, "로그인에 실패했어요. 다시 시도해주세요."));
     } finally {
@@ -72,7 +76,14 @@ function LoginContent() {
 
         <p className="mt-6 text-center text-sm text-ink-faint">
           아직 계정이 없으신가요?{" "}
-          <Link href="/signup" className="font-semibold text-ink underline underline-offset-2">
+          <Link
+            href={
+              searchParams.get("redirect")
+                ? `/signup?redirect=${encodeURIComponent(searchParams.get("redirect")!)}`
+                : "/signup"
+            }
+            className="font-semibold text-ink underline underline-offset-2"
+          >
             회원가입
           </Link>
         </p>

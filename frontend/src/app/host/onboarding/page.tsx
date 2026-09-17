@@ -1,91 +1,409 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AppHeader from "@/components/AppHeader";
 import Button from "@/components/ui/Button";
-import Badge from "@/components/ui/Badge";
 import Card from "@/components/ui/Card";
+import { useAppStore } from "@/lib/store";
+import {
+  createExperience,
+  createLodging,
+  extractErrorMessage,
+  fetchMyListings,
+  fetchMyVillageApplication,
+  updateMyVillageProfile,
+  type ExperienceListing,
+  type LodgingListing,
+  type VillageApplication,
+} from "@/lib/api";
+
+type ExperienceDraft = {
+  title: string;
+  startDate: string;
+  endDate: string;
+  price: string;
+  capacity: string;
+};
+type LodgingDraft = { title: string; unit: string; price: string; capacity: string };
+
+const emptyExperienceDraft: ExperienceDraft = {
+  title: "",
+  startDate: "",
+  endDate: "",
+  price: "",
+  capacity: "",
+};
+const emptyLodgingDraft: LodgingDraft = { title: "", unit: "", price: "", capacity: "" };
+
+function formatDateRange(startDate: string, endDate: string) {
+  const format = (iso: string) => {
+    const [, month, day] = iso.split("-");
+    return `${Number(month)}월 ${Number(day)}일`;
+  };
+  return `${format(startDate)} ~ ${format(endDate)}`;
+}
 
 export default function HostOnboardingPage() {
   const router = useRouter();
-  const [manual, setManual] = useState(false);
-  const [name, setName] = useState("");
+  const { hydrated, accessToken } = useAppStore();
+  const [village, setVillage] = useState<VillageApplication | null>(null);
+  const [checkingStatus, setCheckingStatus] = useState(true);
+  const [statusError, setStatusError] = useState<string | null>(null);
+
+  const [savedExperiences, setSavedExperiences] = useState<ExperienceListing[]>([]);
+  const [savedLodgings, setSavedLodgings] = useState<LodgingListing[]>([]);
+
+  const [villageName, setVillageName] = useState("");
+  const [villageDescription, setVillageDescription] = useState("");
+  const [experienceDrafts, setExperienceDrafts] = useState<ExperienceDraft[]>([]);
+  const [lodgingDrafts, setLodgingDrafts] = useState<LodgingDraft[]>([]);
+  const [experienceEntry, setExperienceEntry] = useState<ExperienceDraft>(emptyExperienceDraft);
+  const [lodgingEntry, setLodgingEntry] = useState<LodgingDraft>(emptyLodgingDraft);
+
+  const [formError, setFormError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (!accessToken) {
+      router.replace("/login?redirect=/host/onboarding");
+      return;
+    }
+    fetchMyVillageApplication(accessToken)
+      .then(async (application) => {
+        if (!application) {
+          router.replace("/host/signup");
+          return;
+        }
+        setVillage(application);
+        setVillageName(application.name ?? "");
+        setVillageDescription(application.description ?? "");
+        if (application.status === "approved") {
+          const listings = await fetchMyListings(accessToken);
+          setSavedExperiences(listings.experiences);
+          setSavedLodgings(listings.lodgings);
+        }
+      })
+      .catch((err) => setStatusError(extractErrorMessage(err, "심사 상태를 불러오지 못했어요.")))
+      .finally(() => setCheckingStatus(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, accessToken]);
+
+  const addExperienceDraft = () => {
+    if (
+      !experienceEntry.title ||
+      !experienceEntry.startDate ||
+      !experienceEntry.endDate ||
+      !experienceEntry.price ||
+      !experienceEntry.capacity
+    ) {
+      setFormError("체험 정보를 모두 입력해주세요.");
+      return;
+    }
+    if (experienceEntry.endDate < experienceEntry.startDate) {
+      setFormError("종료일은 시작일보다 빠를 수 없어요.");
+      return;
+    }
+    setFormError(null);
+    setExperienceDrafts((list) => [...list, experienceEntry]);
+    setExperienceEntry(emptyExperienceDraft);
+  };
+
+  const addLodgingDraft = () => {
+    if (!lodgingEntry.title || !lodgingEntry.unit || !lodgingEntry.price || !lodgingEntry.capacity) {
+      setFormError("숙소 정보를 모두 입력해주세요.");
+      return;
+    }
+    setFormError(null);
+    setLodgingDrafts((list) => [...list, lodgingEntry]);
+    setLodgingEntry(emptyLodgingDraft);
+  };
+
+  const handleSubmitAll = async () => {
+    if (!accessToken) return;
+    if (!villageName || !villageDescription) {
+      setFormError("마을 이름과 소개를 입력해주세요.");
+      return;
+    }
+    setFormError(null);
+    setSubmitting(true);
+    try {
+      await updateMyVillageProfile(accessToken, { name: villageName, description: villageDescription });
+      for (const draft of experienceDrafts) {
+        await createExperience(accessToken, {
+          title: draft.title,
+          startDate: draft.startDate,
+          endDate: draft.endDate,
+          price: Number(draft.price),
+          capacity: Number(draft.capacity),
+        });
+      }
+      for (const draft of lodgingDrafts) {
+        await createLodging(accessToken, {
+          title: draft.title,
+          unit: draft.unit,
+          price: Number(draft.price),
+          capacity: Number(draft.capacity),
+        });
+      }
+      router.push("/host/dashboard");
+    } catch (err) {
+      setFormError(extractErrorMessage(err, "저장에 실패했어요. 잠시 후 다시 시도해주세요."));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (!hydrated || !accessToken) {
+    return null;
+  }
+
+  if (checkingStatus) {
+    return (
+      <>
+        <AppHeader title="마을 정보 등록" showBack={false} />
+        <div className="flex flex-1 items-center justify-center px-5 py-10 text-sm text-ink-faint">
+          확인 중...
+        </div>
+      </>
+    );
+  }
+
+  if (statusError) {
+    return (
+      <>
+        <AppHeader title="마을 정보 등록" showBack={false} />
+        <div className="px-5 py-10 text-sm text-red-600">{statusError}</div>
+      </>
+    );
+  }
+
+  if (village?.status === "pending") {
+    return (
+      <>
+        <AppHeader title="마을 정보 등록" showBack={false} />
+        <div className="flex flex-1 flex-col px-5 py-6 md:my-10 md:flex-none md:rounded-2xl md:border md:border-line md:bg-white md:px-10 md:py-10 md:shadow-card">
+          <h2 className="text-2xl font-bold leading-snug">
+            대표자 인증
+            <br />
+            검토중이에요
+          </h2>
+          <p className="mt-3 text-sm text-ink-soft">
+            제출하신 서류를 확인하고 있어요. 승인되면 마을·체험·숙박 정보를 등록할 수 있어요. (1~2일 소요)
+          </p>
+        </div>
+      </>
+    );
+  }
+
+  if (village?.status === "rejected") {
+    return (
+      <>
+        <AppHeader title="마을 정보 등록" showBack={false} />
+        <div className="flex flex-1 flex-col px-5 py-6 md:my-10 md:flex-none md:rounded-2xl md:border md:border-line md:bg-white md:px-10 md:py-10 md:shadow-card">
+          <h2 className="text-2xl font-bold leading-snug">
+            인증이
+            <br />
+            거절됐어요
+          </h2>
+          <p className="mt-3 text-sm text-ink-soft">
+            제출하신 서류로는 대표자 자격을 확인할 수 없었어요. 서류를 다시 확인해 재신청해주세요.
+          </p>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
       <AppHeader title="마을 정보 등록" showBack={false} />
-      <div className="flex flex-1 flex-col px-5 py-6 md:my-10 md:flex-none md:rounded-2xl md:border md:border-line md:bg-white md:px-10 md:py-10 md:shadow-card">
-        <h2 className="text-2xl font-bold leading-snug">
-          정보를 어떻게
-          <br />
-          등록할까요?
-        </h2>
-        <p className="mt-3 text-sm text-ink-soft">타이핑 대신 편한 방식을 골라주세요</p>
+      <div className="flex flex-1 flex-col gap-6 px-5 py-6 md:my-10 md:flex-none md:rounded-2xl md:border md:border-line md:bg-white md:px-10 md:py-10 md:shadow-card">
+        <div>
+          <h2 className="text-2xl font-bold leading-snug">
+            마을·체험·숙박
+            <br />
+            정보를 한 번에 등록해요
+          </h2>
+          <p className="mt-3 text-sm text-ink-soft">
+            아래 내용을 모두 채우고 마지막에 한 번에 저장돼요.
+          </p>
+        </div>
 
-        {!manual ? (
-          <div className="mt-6 space-y-3">
-            <Card className="border-clay-300 bg-clay-50">
-              <div className="flex items-center justify-between">
-                <p className="font-semibold">카카오톡 챗봇으로 등록</p>
-                <Badge tone="clay">기본</Badge>
-              </div>
-              <div className="mt-3 space-y-2">
-                <div className="w-fit rounded-2xl rounded-tl-none bg-white px-3 py-2 text-sm shadow-card">
-                  몇 명까지 잘 수 있나요?
-                </div>
-                <div className="ml-auto w-fit rounded-2xl rounded-tr-none bg-clay-500 px-3 py-2 text-sm text-white">
-                  4명이요
-                </div>
-              </div>
-              <p className="mt-3 text-xs text-ink-faint">질문에 답만 하면 폼이 자동 완성돼요</p>
-            </Card>
+        {formError && (
+          <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{formError}</div>
+        )}
 
-            <Card>
-              <div className="flex items-center justify-between">
-                <p className="font-semibold">사진 찍어 AI 자동 입력</p>
-                <Badge>선택</Badge>
-              </div>
-              <p className="mt-2 text-sm text-ink-soft">
-                방 사진·안내판을 올리면 초안을 만들어드려요 (OCR)
-              </p>
-            </Card>
-
-            <button
-              onClick={() => setManual(true)}
-              className="mx-auto block pt-2 text-sm text-ink-faint underline underline-offset-2"
-            >
-              또는 폼으로 직접 입력
-            </button>
-          </div>
-        ) : (
-          <div className="mt-6 space-y-3">
+        <div>
+          <p className="mb-2 text-sm font-semibold">마을 정보</p>
+          <div className="space-y-2">
             <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="마을 이름"
-              className="w-full rounded-xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-clay-400"
-            />
-            <input
-              placeholder="최대 수용 인원 (예: 4명)"
+              value={villageName}
+              onChange={(e) => setVillageName(e.target.value)}
+              placeholder="마을 이름 (예: 양지리 마을)"
               className="w-full rounded-xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-clay-400"
             />
             <textarea
+              value={villageDescription}
+              onChange={(e) => setVillageDescription(e.target.value)}
               placeholder="마을 소개"
               className="h-24 w-full resize-none rounded-xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-clay-400"
             />
-            <button
-              onClick={() => setManual(false)}
-              className="text-sm text-ink-faint underline underline-offset-2"
-            >
-              다른 방식으로 등록할래요
-            </button>
           </div>
-        )}
+        </div>
 
-        <div className="mt-auto pt-10">
-          <Button variant="accent" onClick={() => router.push("/host/dashboard")}>
-            {manual ? "정보 저장하고 시작하기" : "카카오톡으로 시작하기"}
+        <div>
+          <p className="mb-2 text-sm font-semibold">체험 프로그램</p>
+          {(savedExperiences.length > 0 || experienceDrafts.length > 0) && (
+            <div className="mb-3 space-y-2">
+              {savedExperiences.map((e) => (
+                <Card key={`saved-${e.id}`} className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold">{e.title}</p>
+                    <p className="text-xs text-ink-faint">
+                      {formatDateRange(e.start_date, e.end_date)} · 정원 {e.capacity}명
+                    </p>
+                  </div>
+                  <span className="text-sm font-semibold">{e.price.toLocaleString()}원</span>
+                </Card>
+              ))}
+              {experienceDrafts.map((e, i) => (
+                <Card key={`draft-${i}`} className="flex items-center justify-between border-dashed">
+                  <div>
+                    <p className="font-semibold">{e.title} <span className="text-xs font-normal text-ink-faint">(저장 대기)</span></p>
+                    <p className="text-xs text-ink-faint">
+                      {formatDateRange(e.startDate, e.endDate)} · 정원 {e.capacity}명
+                    </p>
+                  </div>
+                  <span className="text-sm font-semibold">{Number(e.price).toLocaleString()}원</span>
+                </Card>
+              ))}
+            </div>
+          )}
+          <div className="space-y-2 rounded-xl border border-dashed border-line p-3">
+            <input
+              value={experienceEntry.title}
+              onChange={(ev) => setExperienceEntry((f) => ({ ...f, title: ev.target.value }))}
+              placeholder="체험 이름 (예: 모내기 체험)"
+              className="w-full rounded-xl border border-line bg-white px-4 py-2.5 text-sm outline-none focus:border-clay-400"
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-ink-faint">시작일</span>
+                <input
+                  type="date"
+                  value={experienceEntry.startDate}
+                  onChange={(ev) => setExperienceEntry((f) => ({ ...f, startDate: ev.target.value }))}
+                  className="rounded-xl border border-line bg-white px-3 py-2.5 text-sm outline-none focus:border-clay-400"
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-ink-faint">종료일</span>
+                <input
+                  type="date"
+                  value={experienceEntry.endDate}
+                  min={experienceEntry.startDate || undefined}
+                  onChange={(ev) => setExperienceEntry((f) => ({ ...f, endDate: ev.target.value }))}
+                  className="rounded-xl border border-line bg-white px-3 py-2.5 text-sm outline-none focus:border-clay-400"
+                />
+              </label>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                value={experienceEntry.price}
+                onChange={(ev) =>
+                  setExperienceEntry((f) => ({ ...f, price: ev.target.value.replace(/\D/g, "") }))
+                }
+                inputMode="numeric"
+                placeholder="가격"
+                className="rounded-xl border border-line bg-white px-3 py-2.5 text-sm outline-none focus:border-clay-400"
+              />
+              <input
+                value={experienceEntry.capacity}
+                onChange={(ev) =>
+                  setExperienceEntry((f) => ({ ...f, capacity: ev.target.value.replace(/\D/g, "") }))
+                }
+                inputMode="numeric"
+                placeholder="정원"
+                className="rounded-xl border border-line bg-white px-3 py-2.5 text-sm outline-none focus:border-clay-400"
+              />
+            </div>
+            <Button variant="outline" size="md" onClick={addExperienceDraft}>
+              체험 추가
+            </Button>
+          </div>
+        </div>
+
+        <div>
+          <p className="mb-2 text-sm font-semibold">숙소</p>
+          {(savedLodgings.length > 0 || lodgingDrafts.length > 0) && (
+            <div className="mb-3 space-y-2">
+              {savedLodgings.map((l) => (
+                <Card key={`saved-${l.id}`} className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold">{l.title}</p>
+                    <p className="text-xs text-ink-faint">
+                      {l.unit} · 정원 {l.capacity}명
+                    </p>
+                  </div>
+                  <span className="text-sm font-semibold">{l.price.toLocaleString()}원</span>
+                </Card>
+              ))}
+              {lodgingDrafts.map((l, i) => (
+                <Card key={`draft-${i}`} className="flex items-center justify-between border-dashed">
+                  <div>
+                    <p className="font-semibold">{l.title} <span className="text-xs font-normal text-ink-faint">(저장 대기)</span></p>
+                    <p className="text-xs text-ink-faint">
+                      {l.unit} · 정원 {l.capacity}명
+                    </p>
+                  </div>
+                  <span className="text-sm font-semibold">{Number(l.price).toLocaleString()}원</span>
+                </Card>
+              ))}
+            </div>
+          )}
+          <div className="space-y-2 rounded-xl border border-dashed border-line p-3">
+            <input
+              value={lodgingEntry.title}
+              onChange={(ev) => setLodgingEntry((f) => ({ ...f, title: ev.target.value }))}
+              placeholder="숙소 이름 (예: 두레민박)"
+              className="w-full rounded-xl border border-line bg-white px-4 py-2.5 text-sm outline-none focus:border-clay-400"
+            />
+            <div className="grid grid-cols-3 gap-2">
+              <input
+                value={lodgingEntry.unit}
+                onChange={(ev) => setLodgingEntry((f) => ({ ...f, unit: ev.target.value }))}
+                placeholder="단위 (예: 1박)"
+                className="rounded-xl border border-line bg-white px-3 py-2.5 text-sm outline-none focus:border-clay-400"
+              />
+              <input
+                value={lodgingEntry.price}
+                onChange={(ev) =>
+                  setLodgingEntry((f) => ({ ...f, price: ev.target.value.replace(/\D/g, "") }))
+                }
+                inputMode="numeric"
+                placeholder="가격"
+                className="rounded-xl border border-line bg-white px-3 py-2.5 text-sm outline-none focus:border-clay-400"
+              />
+              <input
+                value={lodgingEntry.capacity}
+                onChange={(ev) =>
+                  setLodgingEntry((f) => ({ ...f, capacity: ev.target.value.replace(/\D/g, "") }))
+                }
+                inputMode="numeric"
+                placeholder="정원"
+                className="rounded-xl border border-line bg-white px-3 py-2.5 text-sm outline-none focus:border-clay-400"
+              />
+            </div>
+            <Button variant="outline" size="md" onClick={addLodgingDraft}>
+              숙소 추가
+            </Button>
+          </div>
+        </div>
+
+        <div className="mt-auto pt-4">
+          <Button variant="accent" disabled={submitting} onClick={handleSubmitAll}>
+            {submitting ? "저장 중..." : "정보 저장하고 시작하기"}
           </Button>
         </div>
       </div>
