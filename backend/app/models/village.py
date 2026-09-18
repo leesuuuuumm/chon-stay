@@ -16,6 +16,7 @@ class Village(Base):
     status = Column(String(20), nullable = False, server_default = "pending")  # pending / approved / rejected
     name = Column(String(200), nullable = True)  # 마을 이름 (승인 후 온보딩에서 입력)
     description = Column(Text, nullable = True)  # 마을 소개
+    image_path = Column(String(500), nullable = True)  # 마을 대표 사진 (공개 서빙 경로)
     created_date = Column(DateTime, server_default = func.now())
 
     user = relationship("User")

@@ -12,6 +12,8 @@ class Settings:
     SECRET_KEY: str = os.getenv("SECRET_KEY", "change-me-in-production")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24
     UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", "uploads/village_docs")  # 마을 대표자 인증 서류 저장 경로
+    PHOTO_UPLOAD_DIR: str = os.getenv("PHOTO_UPLOAD_DIR", "uploads/photos")  # 마을/체험/숙소 사진 저장 경로 (공개 서빙)
+    MEDIA_URL_PREFIX: str = "/media"  # PHOTO_UPLOAD_DIR을 정적으로 서빙하는 URL prefix
 
 
 settings = Settings()

@@ -16,10 +16,20 @@ class ExperienceCreate(BaseModel):
         return self
 
 
+class ImageResponse(BaseModel):
+    id: int
+    image_path: str
+    is_cover: bool
+
+    class Config:
+        from_attributes = True
+
+
 class ExperienceResponse(ExperienceCreate):
     id: int
     village_id: int
     created_date: datetime
+    images: list[ImageResponse] = []
 
     class Config:
         from_attributes = True
@@ -36,6 +46,7 @@ class LodgingResponse(LodgingCreate):
     id: int
     village_id: int
     created_date: datetime
+    images: list[ImageResponse] = []
 
     class Config:
         from_attributes = True

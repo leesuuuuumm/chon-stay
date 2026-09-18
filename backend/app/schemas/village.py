@@ -17,6 +17,7 @@ class VillageResponse(BaseModel):
     status: str
     name: str | None
     description: str | None
+    image_path: str | None
     created_date: datetime
 
     class Config:

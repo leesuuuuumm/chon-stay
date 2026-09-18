@@ -4,6 +4,11 @@ export const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000",
 });
 
+// 백엔드가 내려주는 image_path는 "/media/..." 형태의 상대 경로라 API 서버 주소를 붙여줘야 한다.
+export function resolveImageUrl(imagePath: string) {
+  return `${api.defaults.baseURL}${imagePath}`;
+}
+
 export type AuthUser = {
   id: number;
   email: string;
@@ -22,6 +27,7 @@ export type VillageApplication = {
   status: "pending" | "approved" | "rejected";
   name: string | null;
   description: string | null;
+  image_path: string | null;
   created_date: string;
 };
 
@@ -84,6 +90,21 @@ export async function updateMyVillageProfile(
   return data;
 }
 
+export async function uploadMyVillagePhoto(token: string, photo: File) {
+  const formData = new FormData();
+  formData.append("photo", photo);
+  const { data } = await api.post<VillageApplication>("/api/villages/me/photo", formData, {
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
+  });
+  return data;
+}
+
+export type ListingImage = {
+  id: number;
+  image_path: string;
+  is_cover: boolean;
+};
+
 export type ExperienceListing = {
   id: number;
   village_id: number;
@@ -93,6 +114,7 @@ export type ExperienceListing = {
   price: number;
   capacity: number;
   created_date: string;
+  images: ListingImage[];
 };
 
 export type LodgingListing = {
@@ -103,6 +125,7 @@ export type LodgingListing = {
   price: number;
   capacity: number;
   created_date: string;
+  images: ListingImage[];
 };
 
 export async function createExperience(
@@ -130,6 +153,40 @@ export async function createLodging(
   const { data } = await api.post<LodgingListing>("/api/listings/lodgings", payload, {
     headers: { Authorization: `Bearer ${token}` },
   });
+  return data;
+}
+
+export async function uploadExperienceImages(
+  token: string,
+  experienceId: number,
+  files: File[],
+  coverIndex: number
+) {
+  const formData = new FormData();
+  files.forEach((file) => formData.append("files", file));
+  formData.append("cover_index", String(coverIndex));
+  const { data } = await api.post<ListingImage[]>(
+    `/api/listings/experiences/${experienceId}/images`,
+    formData,
+    { headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" } }
+  );
+  return data;
+}
+
+export async function uploadLodgingImages(
+  token: string,
+  lodgingId: number,
+  files: File[],
+  coverIndex: number
+) {
+  const formData = new FormData();
+  files.forEach((file) => formData.append("files", file));
+  formData.append("cover_index", String(coverIndex));
+  const { data } = await api.post<ListingImage[]>(
+    `/api/listings/lodgings/${lodgingId}/images`,
+    formData,
+    { headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" } }
+  );
   return data;
 }
 

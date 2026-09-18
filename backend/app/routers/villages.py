@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.deps import get_current_admin_user, get_current_approved_village, get_current_user
+from app.core.uploads import save_photo
 from app.models.user import User
 from app.models.village import Village
 from app.schemas.village import VillageProfileUpdate, VillageResponse
@@ -76,6 +77,18 @@ def update_my_village_profile(
 ):
     village.name = payload.name
     village.description = payload.description
+    db.commit()
+    db.refresh(village)
+    return village
+
+
+@router.post("/me/photo", response_model = VillageResponse)
+def upload_my_village_photo(
+    photo: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    village: Village = Depends(get_current_approved_village),
+):
+    village.image_path = save_photo(photo, "villages")
     db.commit()
     db.refresh(village)
     return village

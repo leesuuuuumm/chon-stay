@@ -64,10 +64,10 @@ export default function MyPage() {
                 </p>
                 {villageApplication.status === "approved" && (
                   <Link
-                    href="/host/dashboard"
+                    href="/host/onboarding"
                     className="inline-block text-sm font-semibold text-clay-600 underline underline-offset-2"
                   >
-                    마을 관리 페이지로 이동
+                    마을·체험·숙소 정보 수정하기
                   </Link>
                 )}
               </Card>

@@ -1,7 +1,11 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.routers import users, villages, houses, matching, listings
+from app.core.config import settings
 from app.core.database import Base, engine
 from app.models import user, village, listing
 
@@ -16,6 +20,9 @@ app = FastAPI(
 )
 
 Base.metadata.create_all(bind = engine)
+
+os.makedirs(settings.PHOTO_UPLOAD_DIR, exist_ok = True)
+app.mount(settings.MEDIA_URL_PREFIX, StaticFiles(directory = settings.PHOTO_UPLOAD_DIR), name = "media")
 
 app.add_middleware(
     CORSMiddleware,
