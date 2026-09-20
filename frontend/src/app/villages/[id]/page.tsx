@@ -14,6 +14,7 @@ import {
 } from '@/lib/api';
 import type { VillageDetail } from '@/lib/api';
 import { useAppStore } from '@/lib/store';
+import { addDays, formatMonthDay } from '@/lib/dates';
 
 type Tab = '체험' | '숙박';
 
@@ -47,6 +48,10 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
   const initialTab = searchParams.get('tab');
   const [tab, setTab] = useState<Tab>(isTab(initialTab) ? initialTab : '체험');
   const [village, setVillage] = useState<VillageDetail | null>(null);
+  const [nightsMap, setNightsMap] = useState<Record<string, number>>({});
+  const getNights = (itemId: string) => nightsMap[itemId] || 1;
+  const setNights = (itemId: string, value: number) =>
+    setNightsMap((n) => ({ ...n, [itemId]: Math.min(14, Math.max(1, value || 1)) }));
   const getHeadcount = (itemId: string) => headcounts[itemId] || 1;
   const setHeadcount = (itemId: string, value: number) =>
     setHeadcounts((h) => ({ ...h, [itemId]: Math.max(1, value) }));
@@ -130,6 +135,8 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
         title: lodge.title,
         meta: lodge.unit,
         price: lodge.price,
+        nights: 1,
+        unitPrice: lodge.price,
       });
     }
   };
@@ -290,7 +297,8 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
                   {village.lodgings.map((lodge) => {
                     const itemId = String(lodge.id);
                     const inCart = cart.some((c) => c.id === itemId);
-                    const hc = getHeadcount(itemId);
+                    const nights = getNights(itemId);
+                    const unitPrice = lodge.price;
                     return (
                       <Card key={lodge.id} className="space-y-2">
                         <div className="flex items-center justify-between gap-3">
@@ -300,24 +308,31 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
                               {lodge.unit} · {lodge.price.toLocaleString()}원 ·
                               최대 {lodge.capacity}인
                             </p>
+                            {visitDate && (
+                              <p className="text-xs text-ink-faint">
+                                {formatMonthDay(visitDate)} 체크인 →{' '}
+                                {formatMonthDay(addDays(visitDate, nights))}{' '}
+                                체크아웃 ({nights}박)
+                              </p>
+                            )}
                           </div>
                         </div>
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm text-ink-soft">인원</span>
+                            <span className="text-sm text-ink-soft">박수</span>
                             <input
                               type="number"
                               min={1}
-                              max={lodge.capacity}
-                              value={hc}
+                              max={14}
+                              value={nights}
                               onChange={(e) =>
-                                setHeadcount(itemId, Number(e.target.value))
+                                setNights(itemId, Number(e.target.value))
                               }
                               className="w-16 rounded-lg border border-line px-2 py-1 text-sm"
                               disabled={inCart}
                             />
                             <span className="text-sm font-semibold">
-                              {(lodge.price * hc).toLocaleString()}원
+                              {(unitPrice * nights).toLocaleString()}원
                             </span>
                           </div>
                           <Button
@@ -332,9 +347,11 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
                                 villageId: String(village.id),
                                 villageName: village.name,
                                 type: 'lodging',
-                                title: `${lodge.title} · ${hc}인`,
+                                title: lodge.title,
                                 meta: lodge.unit,
-                                price: lodge.price * hc,
+                                price: unitPrice * nights,
+                                nights,
+                                unitPrice,
                               })
                             }
                           >

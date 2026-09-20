@@ -12,6 +12,9 @@ export type CartItem = {
   title: string;
   meta: string;
   price: number;
+  // 숙박 전용: 박수와 1박 가격 (price = unitPrice * nights)
+  nights?: number;
+  unitPrice?: number;
 };
 
 type AppState = {
