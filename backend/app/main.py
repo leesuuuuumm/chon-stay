@@ -5,9 +5,7 @@ from app.routers import users, villages, houses, matching
 from app.core.database import Base, engine
 from app.models import user
 
-from dotenv import load_dotenv
 
-load_dotenv()
 
 app = FastAPI(
     title="촌스테이 API",

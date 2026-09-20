@@ -12,7 +12,7 @@ router = APIRouter()
 
 
 
-@router.post("/singup", response_model = UserResponse)
+@router.post("/signup", response_model = UserResponse)
 def singup(user_in: UserCreate, db: Session = Depends(get_db)):
     check_email = db.query(User).filter(User.email == user_in.email).first()
 
