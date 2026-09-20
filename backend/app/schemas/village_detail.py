@@ -3,6 +3,15 @@ from pydantic import BaseModel
 from typing import List
 
 
+class ImageDetail(BaseModel):
+    id: int
+    image_path: str
+    is_cover: bool
+
+    class Config:
+        from_attributes = True
+
+
 class ExperienceDetail(BaseModel):
     id: int
     title: str
@@ -11,6 +20,7 @@ class ExperienceDetail(BaseModel):
     end_date: date
     price: int
     capacity: int
+    images: List[ImageDetail] = []
 
     class Config:
         from_attributes = True
@@ -22,6 +32,7 @@ class LodgingDetail(BaseModel):
     unit: str
     price: int
     capacity: int
+    images: List[ImageDetail] = []
 
     class Config:
         from_attributes = True

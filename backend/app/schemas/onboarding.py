@@ -38,6 +38,7 @@ class VillageRecommendation(BaseModel):
     explanation: str
     matching_score: int
     alert: bool
+    image_path: str | None = None
 
 class OnboardingResponse(BaseModel):
     onboarding_id: int
