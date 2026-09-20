@@ -61,7 +61,7 @@ export default function HostSignupPage() {
   if (!accessToken || !user) {
     return (
       <>
-        <AppHeader title="마을 대표자 자격 인증" showBack={false} />
+        <AppHeader title="마을 대표자 자격 인증" />
         <div className="flex flex-1 flex-col px-5 py-6 md:my-10 md:flex-none md:rounded-2xl md:border md:border-line md:bg-white md:px-10 md:py-10 md:shadow-card">
           <h2 className="text-2xl font-bold leading-snug">
             먼저 회원가입이나
@@ -86,7 +86,7 @@ export default function HostSignupPage() {
 
   return (
     <>
-      <AppHeader title="마을 대표자 자격 인증" showBack={false} />
+      <AppHeader title="마을 대표자 자격 인증" />
       <div className="flex flex-1 flex-col px-5 py-6 md:my-10 md:flex-none md:rounded-2xl md:border md:border-line md:bg-white md:px-10 md:py-10 md:shadow-card">
         <h2 className="text-2xl font-bold leading-snug">
           마을 대표자

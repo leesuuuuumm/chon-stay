@@ -12,7 +12,7 @@ export default function HostInsightsPage() {
 
   return (
     <>
-      <AppHeader title="통계·인사이트" showBack={false} />
+      <AppHeader title="통계·인사이트" />
       <div className="space-y-4 px-5 py-5 md:px-8 md:py-8">
         <h2 className="text-lg font-bold md:text-xl">마을 인사이트</h2>
 

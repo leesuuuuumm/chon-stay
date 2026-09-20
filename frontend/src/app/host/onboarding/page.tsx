@@ -359,7 +359,7 @@ export default function HostOnboardingPage() {
   if (checkingStatus) {
     return (
       <>
-        <AppHeader title="마을 정보 등록" showBack={false} />
+        <AppHeader title="마을 정보 등록" />
         <div className="flex flex-1 items-center justify-center px-5 py-10 text-sm text-ink-faint">
           확인 중...
         </div>
@@ -370,7 +370,7 @@ export default function HostOnboardingPage() {
   if (statusError) {
     return (
       <>
-        <AppHeader title="마을 정보 등록" showBack={false} />
+        <AppHeader title="마을 정보 등록" />
         <div className="px-5 py-10 text-sm text-red-600">{statusError}</div>
       </>
     );
@@ -379,7 +379,7 @@ export default function HostOnboardingPage() {
   if (village?.status === "pending") {
     return (
       <>
-        <AppHeader title="마을 정보 등록" showBack={false} />
+        <AppHeader title="마을 정보 등록" />
         <div className="flex flex-1 flex-col px-5 py-6 md:my-10 md:flex-none md:rounded-2xl md:border md:border-line md:bg-white md:px-10 md:py-10 md:shadow-card">
           <h2 className="text-2xl font-bold leading-snug">
             대표자 인증
@@ -397,7 +397,7 @@ export default function HostOnboardingPage() {
   if (village?.status === "rejected") {
     return (
       <>
-        <AppHeader title="마을 정보 등록" showBack={false} />
+        <AppHeader title="마을 정보 등록" />
         <div className="flex flex-1 flex-col px-5 py-6 md:my-10 md:flex-none md:rounded-2xl md:border md:border-line md:bg-white md:px-10 md:py-10 md:shadow-card">
           <h2 className="text-2xl font-bold leading-snug">
             인증이
@@ -414,7 +414,7 @@ export default function HostOnboardingPage() {
 
   return (
     <>
-      <AppHeader title="마을 정보 등록" showBack={false} />
+      <AppHeader title="마을 정보 등록" />
       <div className="flex flex-1 flex-col gap-6 px-5 py-6 md:my-10 md:flex-none md:rounded-2xl md:border md:border-line md:bg-white md:px-10 md:py-10 md:shadow-card">
         <div>
           <h2 className="text-2xl font-bold leading-snug">

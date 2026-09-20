@@ -21,7 +21,7 @@ export default function HostCommunityPage() {
 
   return (
     <>
-      <AppHeader title="리뷰·커뮤니티 관리" showBack={false} />
+      <AppHeader title="리뷰·커뮤니티 관리" />
       <div className="space-y-5 px-5 py-5 md:px-8 md:py-8 lg:grid lg:grid-cols-[1.3fr_1fr] lg:items-start lg:gap-8 lg:space-y-0">
         <div>
           <p className="mb-2 text-sm font-semibold text-ink-soft">리뷰·게시판</p>

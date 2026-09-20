@@ -42,7 +42,7 @@ function LoginContent() {
 
   return (
     <Shell>
-      <AppHeader title="로그인" showBack={false} />
+      <AppHeader title="로그인" />
       <div className="flex flex-1 flex-col px-5 py-6 md:my-6 md:flex-none md:rounded-2xl md:border md:border-line md:bg-white md:px-10 md:py-10 md:shadow-card">
         <h2 className="text-2xl font-bold leading-snug">
           다시 만나서

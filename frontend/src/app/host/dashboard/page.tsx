@@ -47,7 +47,7 @@ export default function HostDashboardPage() {
 
   return (
     <>
-      <AppHeader title="대시보드 홈" showBack={false} />
+      <AppHeader title="대시보드 홈" />
       <div className="space-y-5 px-5 py-5 md:px-8 md:py-8">
         <h2 className="text-xl font-bold md:text-2xl">{villageName ?? "우리 마을"}</h2>
 

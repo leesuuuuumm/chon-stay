@@ -95,7 +95,7 @@ export default function AdminPage() {
 
   return (
     <Shell size="wide">
-      <AppHeader title="마을 대표자 승인 관리" showBack={false} />
+      <AppHeader title="마을 대표자 승인 관리" />
       <div className="flex-1 space-y-4 px-5 py-5 md:px-8 md:py-8">
         {error && (
           <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>

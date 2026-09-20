@@ -132,7 +132,7 @@ export default function HostReservationsPage() {
 
   return (
     <>
-      <AppHeader title="예약 승인/거절 관리" showBack={false} />
+      <AppHeader title="예약 승인/거절 관리" />
       <div className="space-y-4 px-5 py-5 md:px-8 md:py-8">
         <h2 className="text-lg font-bold md:text-xl">예약 신청 {pending.length}</h2>
         {content}

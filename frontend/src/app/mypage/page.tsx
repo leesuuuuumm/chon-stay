@@ -163,7 +163,7 @@ export default function MyPage() {
     <>
       <DesktopSectionNav items={NAV_ITEMS} right={<AuthNavStatus />} />
       <Shell withBottomPadding size="wide">
-        <AppHeader title="내 마을" showBack={false} />
+        <AppHeader title="내 마을" />
         <div className="flex-1 space-y-5 px-5 py-5 md:px-8 lg:grid lg:grid-cols-[1.4fr_1fr] lg:items-start lg:gap-8 lg:space-y-0">
           <div className="space-y-5">
             {!user && (

@@ -22,7 +22,12 @@ export default function AppHeader({
         {showBack ? (
           <button
             aria-label="뒤로가기"
-            onClick={() => (onBack ? onBack() : router.back())}
+            onClick={() => {
+              if (onBack) onBack();
+              // 주소로 바로 들어와 돌아갈 기록이 없으면 홈으로 보낸다.
+              else if (window.history.length > 1) router.back();
+              else router.push("/");
+            }}
             className="flex h-9 w-9 items-center justify-center rounded-full text-ink hover:bg-sand-dark"
           >
             ←
