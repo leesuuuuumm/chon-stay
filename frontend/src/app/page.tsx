@@ -25,6 +25,9 @@ export default function Home() {
           <h1 className="text-4xl font-extrabold leading-tight">숨, 표</h1>
           <AuthNavStatus />
         </div>
+        <p className="mt-2 text-sm text-ink-soft">
+          숨 쉬듯 머물고, 쉼표처럼 이어지는 여행
+        </p>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           <Card className="flex flex-col gap-4">
