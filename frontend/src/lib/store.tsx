@@ -37,6 +37,7 @@ type AppContextValue = AppState & {
   setAuth: (token: string, user: AuthUser) => void;
   logout: () => void;
   setRecommendations: (recommendations: VillageRecommendation[]) => void;
+  resetOnboarding: () => void;
 };
 
 const STORAGE_KEY = 'chonstay:v1';
@@ -114,6 +115,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       logout: () => setState((s) => ({ ...s, accessToken: null, user: null })),
       setRecommendations: (recommendations) =>
         setState((s) => ({ ...s, recommendations })),
+      resetOnboarding: () =>
+        setState((s) => ({ ...s, interests: [], duration: null })),
     }),
     [state, hydrated],
   );

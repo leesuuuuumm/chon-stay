@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Shell from '@/components/Shell';
 import AppHeader from '@/components/AppHeader';
@@ -19,9 +19,14 @@ export default function OnboardingPage() {
     setDuration,
     accessToken,
     setRecommendations,
+    resetOnboarding,
   } = useAppStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    resetOnboarding();
+  }, []);
 
   const handleRecommend = async () => {
     if (!accessToken) {

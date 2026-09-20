@@ -54,7 +54,10 @@ def recommend_villages(
 
     # 마을변 자카드 유사도 계산
     user_interests = set(req.interests)
-    villages = db.query(Village).all()
+    villages = db.query(Village).filter(
+        Village.status == "approved",
+        Village.name.isnot(None)
+    ).all()
     recommendations = []
 
     for village in villages:
