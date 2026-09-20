@@ -1,9 +1,9 @@
 """Workbench 없이 터미널에서 DB(.env의 DATABASE_URL) 데이터를 바로 확인하는 스크립트.
 
 사용법 (backend/ 디렉터리에서 실행):
-    python scripts/check_db.py                # 모든 테이블 요약 + 테이블별 최근 5건
-    python scripts/check_db.py users           # users 테이블만 최근 20건
-    python scripts/check_db.py users 50        # users 테이블 최근 50건
+    python scripts/check_db.py                # 모든 테이블의 전체 데이터
+    python scripts/check_db.py users           # users 테이블 전체 데이터
+    python scripts/check_db.py users 50        # users 테이블 최근 50건만
 """
 
 import os
@@ -18,7 +18,7 @@ from app.core.database import engine  # noqa: E402
 
 def main():
     only_table = sys.argv[1] if len(sys.argv) > 1 else None
-    limit = int(sys.argv[2]) if len(sys.argv) > 2 else (20 if only_table else 5)
+    limit = int(sys.argv[2]) if len(sys.argv) > 2 else None
 
     inspector = inspect(engine)
     all_tables = inspector.get_table_names()
@@ -40,7 +40,8 @@ def main():
             print(f"\n=== {t} ({count}건) ===")
             if not count:
                 continue
-            result = conn.execute(text(f"SELECT * FROM `{t}` ORDER BY 1 DESC LIMIT {limit}"))
+            limit_clause = f" LIMIT {limit}" if limit else ""
+            result = conn.execute(text(f"SELECT * FROM `{t}` ORDER BY 1 DESC{limit_clause}"))
             cols = list(result.keys())
             print(" | ".join(cols))
             for row in result:
