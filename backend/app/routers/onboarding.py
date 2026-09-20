@@ -70,15 +70,15 @@ def recommend_villages(
         )
         db.add(onboarding_list)
 
-       recommendations.append(
-            VillageRecommendation(
-                village_id=village.id,
-                village_name=village.name,
-                explanation=explanation,
-                matching_score=score,
-                alert=False,
-            )
+    recommendations.append(
+        VillageRecommendation(
+            village_id=village.id,
+            village_name=village.name,
+            explanation=explanation,
+            matching_score=score,
+            alert=False,
         )
+    )
 
     db.commit()
     recommendations.sort(key=lambda x: x.matching_score, reverse=True)

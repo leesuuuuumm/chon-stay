@@ -1,21 +1,21 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import Shell from "@/components/Shell";
-import AppHeader from "@/components/AppHeader";
-import Button from "@/components/ui/Button";
-import { signup, login, fetchMe, extractErrorMessage } from "@/lib/api";
-import { useAppStore } from "@/lib/store";
+import { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import Shell from '@/components/Shell';
+import AppHeader from '@/components/AppHeader';
+import Button from '@/components/ui/Button';
+import { signup, login, fetchMe, extractErrorMessage } from '@/lib/api';
+import { useAppStore } from '@/lib/store';
 
 export default function SignupPage() {
   const router = useRouter();
   const { setAuth } = useAppStore();
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -23,7 +23,7 @@ export default function SignupPage() {
     e.preventDefault();
     setError(null);
     if (password !== passwordConfirm) {
-      setError("비밀번호가 서로 달라요.");
+      setError('비밀번호가 서로 달라요.');
       return;
     }
     setLoading(true);
@@ -31,10 +31,12 @@ export default function SignupPage() {
       await signup({ email, password, username });
       const { access_token } = await login({ email, password });
       const user = await fetchMe(access_token);
-      setAuth(access_token, user);
-      router.push("/onboarding");
+      setAuth(access_token, user); // 토큰 임시 저장
+      router.push('/onboarding');
     } catch (err) {
-      setError(extractErrorMessage(err, "회원가입에 실패했어요. 다시 시도해주세요."));
+      setError(
+        extractErrorMessage(err, '회원가입에 실패했어요. 다시 시도해주세요.'),
+      );
     } finally {
       setLoading(false);
     }
@@ -49,7 +51,9 @@ export default function SignupPage() {
           <br />
           처음이신가요?
         </h2>
-        <p className="mt-3 text-sm text-ink-soft">계정을 만들면 관계 맺은 마을이 저장돼요.</p>
+        <p className="mt-3 text-sm text-ink-soft">
+          계정을 만들면 관계 맺은 마을이 저장돼요.
+        </p>
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-3">
           <input
@@ -86,13 +90,16 @@ export default function SignupPage() {
           />
           {error && <p className="text-sm text-red-600">{error}</p>}
           <Button type="submit" disabled={loading}>
-            {loading ? "가입 중..." : "회원가입"}
+            {loading ? '가입 중...' : '회원가입'}
           </Button>
         </form>
 
         <p className="mt-6 text-center text-sm text-ink-faint">
-          이미 계정이 있으신가요?{" "}
-          <Link href="/login" className="font-semibold text-ink underline underline-offset-2">
+          이미 계정이 있으신가요?{' '}
+          <Link
+            href="/login"
+            className="font-semibold text-ink underline underline-offset-2"
+          >
             로그인
           </Link>
         </p>
