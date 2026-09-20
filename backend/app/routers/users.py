@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.core.coupons import ensure_welcome_coupon
 from app.core.database import get_db
 from app.core.security import hash_password, verify_password
 from app.models.user import User
@@ -28,6 +29,7 @@ def singup(user_in: UserCreate, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
+    ensure_welcome_coupon(db, user.id)
     return user
 
 @router.post("/login")

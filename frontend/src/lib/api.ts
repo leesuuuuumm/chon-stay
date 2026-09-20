@@ -417,16 +417,43 @@ export type BookingPayload = {
   visit_date: string;
   total_price: number;
   items: BookingItemPayload[];
+  coupon_id?: number;
 };
 
 export async function createBooking(token: string, payload: BookingPayload) {
-  const { data } = await api.post('/api/bookings/', payload, {
+  const { data } = await api.post<{
+    booking_id: number;
+    status: BookingStatus;
+    total_price: number;
+    discount_amount: number;
+  }>('/api/bookings/', payload, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return data;
 }
 
-export type BookingStatus = 'pending' | 'approved' | 'rejected';
+export type CouponStatus = 'available' | 'used' | 'expired';
+
+export type Coupon = {
+  id: number;
+  code: string;
+  title: string;
+  discount_percent: number;
+  applies_to: 'all' | 'lodging';
+  status: CouponStatus;
+  issued_at: string;
+  expires_at: string;
+  used_at: string | null;
+};
+
+export async function fetchMyCoupons(token: string) {
+  const { data } = await api.get<Coupon[]>('/api/coupons/mine', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return data;
+}
+
+export type BookingStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
 
 export type HostBookingItem = {
   type: 'experience' | 'lodging';
@@ -446,6 +473,7 @@ export type HostBooking = {
   requested_at: string;
   decided_at: string | null;
   applicant_name: string;
+  discount_amount: number;
   items: HostBookingItem[];
 };
 
@@ -460,6 +488,7 @@ export type MyBooking = {
   decided_at: string | null;
   village_id: number;
   village_name: string | null;
+  discount_amount: number;
   items: HostBookingItem[];
 };
 
@@ -467,6 +496,15 @@ export async function fetchMyBookings(token: string) {
   const { data } = await api.get<MyBooking[]>('/api/bookings/mine', {
     headers: { Authorization: `Bearer ${token}` },
   });
+  return data;
+}
+
+export async function cancelMyBooking(token: string, bookingId: number) {
+  const { data } = await api.post<MyBooking>(
+    `/api/bookings/${bookingId}/cancel`,
+    null,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
   return data;
 }
 

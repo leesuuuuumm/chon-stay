@@ -1,16 +1,30 @@
 import { useEffect, useState } from "react";
 import { extractErrorMessage, fetchHostBookings, type BookingStatus, type HostBooking } from "@/lib/api";
+import { diffDays } from "@/lib/dates";
 import { useAppStore } from "@/lib/store";
 
 export const STATUS_LABEL: Record<BookingStatus, string> = {
   pending: "승인 대기",
   approved: "승인 완료",
   rejected: "거절됨",
+  cancelled: "취소됨",
 };
 
 export function bookingTitle(booking: HostBooking) {
   const first = booking.items[0]?.title ?? "예약";
   return booking.items.length > 1 ? `${first} 외 ${booking.items.length - 1}건` : first;
+}
+
+// 숙박이 있으면 "10월 5일 체크인 → 10월 8일 체크아웃 (3박)", 없으면 "방문일 10월 5일"
+export function stayLabel(booking: { start_date: string; end_date: string }) {
+  const nights = diffDays(booking.start_date, booking.end_date);
+  if (nights <= 0) return `방문일 ${formatVisitDate(booking.start_date)}`;
+  return `${formatVisitDate(booking.start_date)} 체크인 → ${formatVisitDate(booking.end_date)} 체크아웃 (${nights}박)`;
+}
+
+export function itemQuantityLabel(item: { type: string; quantity: number }) {
+  if (item.type === "lodging") return ` · ${item.quantity}박`;
+  return item.quantity > 1 ? ` × ${item.quantity}` : "";
 }
 
 export function formatVisitDate(iso: string) {
