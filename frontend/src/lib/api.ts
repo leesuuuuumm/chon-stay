@@ -491,6 +491,21 @@ export type HostBooking = {
   items: HostBookingItem[];
 };
 
+export const REVIEW_MAX_LENGTH = 200;
+
+export type MyReview = {
+  id: number;
+  rating: number;
+  comment: string;
+  created_date: string;
+};
+
+export type MyBookingItem = HostBookingItem & {
+  id: number;
+  can_review: boolean;
+  review: MyReview | null;
+};
+
 export type MyBooking = {
   id: number;
   status: BookingStatus;
@@ -503,7 +518,7 @@ export type MyBooking = {
   village_id: number;
   village_name: string | null;
   discount_amount: number;
-  items: HostBookingItem[];
+  items: MyBookingItem[];
 };
 
 export async function fetchMyBookings(token: string) {
@@ -519,6 +534,61 @@ export async function cancelMyBooking(token: string, bookingId: number) {
     null,
     { headers: { Authorization: `Bearer ${token}` } },
   );
+  return data;
+}
+
+export async function createReview(
+  token: string,
+  payload: { booking_item_id: number; rating: number; comment: string },
+) {
+  const { data } = await api.post<MyReview>('/api/reviews/', payload, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return data;
+}
+
+export async function updateReview(
+  token: string,
+  reviewId: number,
+  payload: { rating: number; comment: string },
+) {
+  const { data } = await api.patch<MyReview>(
+    `/api/reviews/${reviewId}`,
+    payload,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  return data;
+}
+
+export async function deleteReview(token: string, reviewId: number) {
+  await api.delete(`/api/reviews/${reviewId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export type Review = {
+  id: number;
+  author: string;
+  rating: number;
+  comment: string;
+  created_date: string;
+};
+
+export type ReviewList = {
+  count: number;
+  average_rating: number | null;
+  reviews: Review[];
+};
+
+export async function fetchReviews(
+  target: { experienceId: number } | { lodgingId: number },
+) {
+  const { data } = await api.get<ReviewList>('/api/reviews/', {
+    params:
+      'experienceId' in target
+        ? { experience_id: target.experienceId }
+        : { lodging_id: target.lodgingId },
+  });
   return data;
 }
 

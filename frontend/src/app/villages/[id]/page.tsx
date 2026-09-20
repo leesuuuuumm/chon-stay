@@ -9,6 +9,7 @@ import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import StayCalendar from '@/components/StayCalendar';
 import PhotoViewer, { CardPhoto, orderImages } from '@/components/PhotoViewer';
+import { ReviewListModal } from '@/components/ReviewModals';
 import {
   getVillageDetail,
   getLodgingUnavailableDates,
@@ -66,6 +67,11 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
   const [viewer, setViewer] = useState<{
     title: string;
     images: ListingImage[];
+  } | null>(null);
+  // 체험/숙박 카드의 "리뷰 보기"로 여는 리뷰 창
+  const [reviewView, setReviewView] = useState<{
+    title: string;
+    target: { experienceId: number } | { lodgingId: number };
   } | null>(null);
   const parseCount = (raw: string, max: number) => {
     const n = Math.floor(Number(raw));
@@ -296,6 +302,15 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
                           </div>
                         </div>
                         </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setReviewView({ title: exp.title, target: { experienceId: exp.id } })
+                          }
+                          className="text-xs font-semibold text-clay-600 underline underline-offset-2"
+                        >
+                          리뷰 보기
+                        </button>
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-2">
                             <span className="text-sm text-ink-soft">인원</span>
@@ -411,6 +426,15 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
                           </p>
                         </div>
                         </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setReviewView({ title: lodge.title, target: { lodgingId: lodge.id } })
+                          }
+                          className="text-xs font-semibold text-clay-600 underline underline-offset-2"
+                        >
+                          리뷰 보기
+                        </button>
                         <div className="flex items-center justify-between gap-3">
                           <p className="text-sm">
                             {nights > 0 && dates.checkIn && dates.checkOut ? (
@@ -579,6 +603,13 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
           </>
         )}
       </div>
+      {reviewView && (
+        <ReviewListModal
+          title={reviewView.title}
+          target={reviewView.target}
+          onClose={() => setReviewView(null)}
+        />
+      )}
       {viewer && (
         <PhotoViewer
           title={viewer.title}

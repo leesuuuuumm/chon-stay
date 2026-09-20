@@ -13,13 +13,17 @@ from app.models.user import User
 from app.models.village import Village
 from app.models.listing import Experience, Lodging
 from app.models.booking import Booking, BookingItem
+from app.models.review import Review
+from app.core.reviews import is_review_open
 from app.schemas.booking import (
     BookingRequest,
     BookingResponse,
     HostBookingItem,
     HostBookingResponse,
+    MyBookingItem,
     MyBookingResponse,
 )
+from app.schemas.review import MyReview
 
 router = APIRouter()
 
@@ -159,31 +163,60 @@ def _lodging_has_conflict(db: Session, lodging_id: int, check_in, check_out) -> 
     )
 
 
-def _load_items(db: Session, booking_ids: list[int]) -> dict[int, list[HostBookingItem]]:
+def _load_items(db: Session, booking_ids: list[int], with_reviews: bool = False) -> dict[int, list]:
     items_by_booking = defaultdict(list)
     if not booking_ids:
         return items_by_booking
     item_rows = (
-        db.query(BookingItem, Experience.title, Lodging.title)
+        db.query(BookingItem, Experience.title, Lodging.title, Booking.status)
+        .join(Booking, Booking.id == BookingItem.booking_id)
         .outerjoin(Experience, Experience.id == BookingItem.experience_id)
         .outerjoin(Lodging, Lodging.id == BookingItem.lodging_id)
         .filter(BookingItem.booking_id.in_(booking_ids))
         .order_by(BookingItem.id)
         .all()
     )
-    for item, experience_title, lodging_title in item_rows:
-        is_experience = item.experience_id is not None
-        items_by_booking[item.booking_id].append(
-            HostBookingItem(
-                type="experience" if is_experience else "lodging",
-                title=(experience_title if is_experience else lodging_title) or "삭제된 항목",
-                quantity=item.quantity,
-                unit_price=item.unit_price,
-                subtotal=item.subtotal,
-                start_date=item.start_date,
-                end_date=item.end_date,
+    reviews = {}
+    if with_reviews:
+        reviews = {
+            review.booking_item_id: review
+            for review in db.query(Review).filter(
+                Review.booking_item_id.in_([item.id for item, *_ in item_rows])
             )
+        }
+    today = today_kst()
+    for item, experience_title, lodging_title, booking_status in item_rows:
+        is_experience = item.experience_id is not None
+        fields = dict(
+            type="experience" if is_experience else "lodging",
+            title=(experience_title if is_experience else lodging_title) or "삭제된 항목",
+            quantity=item.quantity,
+            unit_price=item.unit_price,
+            subtotal=item.subtotal,
+            start_date=item.start_date,
+            end_date=item.end_date,
         )
+        if with_reviews:
+            review = reviews.get(item.id)
+            items_by_booking[item.booking_id].append(
+                MyBookingItem(
+                    **fields,
+                    id=item.id,
+                    can_review=review is None
+                    and booking_status == "approved"
+                    and is_review_open(item, today),
+                    review=MyReview(
+                        id=review.id,
+                        rating=review.rating,
+                        comment=review.comment,
+                        created_date=review.created_date,
+                    )
+                    if review
+                    else None,
+                )
+            )
+        else:
+            items_by_booking[item.booking_id].append(HostBookingItem(**fields))
     return items_by_booking
 
 
@@ -196,7 +229,7 @@ def _load_my_bookings(db: Session, account_id: int, booking_id: Optional[int] = 
     if booking_id is not None:
         query = query.filter(Booking.id == booking_id)
     rows = query.order_by(Booking.requested_at.desc(), Booking.id.desc()).all()
-    items_by_booking = _load_items(db, [booking.id for booking, _ in rows])
+    items_by_booking = _load_items(db, [booking.id for booking, _ in rows], with_reviews=True)
     return [
         MyBookingResponse(
             id=booking.id,

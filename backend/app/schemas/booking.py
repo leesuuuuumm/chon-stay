@@ -2,6 +2,8 @@ from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import date, datetime
 
+from app.schemas.review import MyReview
+
 
 class BookingItemRequest(BaseModel):
     quantity: int = Field(ge=1)  # 체험: 참여 인원, 숙박: 박수
@@ -39,6 +41,12 @@ class HostBookingItem(BaseModel):
     end_date: Optional[date] = None
 
 
+class MyBookingItem(HostBookingItem):
+    id: int
+    can_review: bool = False  # 리뷰를 쓸 수 있는 시점이고 아직 쓰지 않았다
+    review: Optional[MyReview] = None
+
+
 class MyBookingResponse(BaseModel):
     id: int
     status: str
@@ -51,7 +59,7 @@ class MyBookingResponse(BaseModel):
     village_id: int
     village_name: Optional[str] = None
     discount_amount: int = 0
-    items: List[HostBookingItem]
+    items: List[MyBookingItem]
 
 
 class HostBookingResponse(BaseModel):

@@ -9,6 +9,14 @@ from app.schemas.village_detail import VillageDetailResponse
 router = APIRouter()
 
 
+def experience_key(e):
+    return (e.title.strip(), e.start_date, e.end_date, e.price, e.capacity)
+
+
+def lodging_key(l):
+    return (l.title.strip(), l.unit.strip(), l.price, l.capacity)
+
+
 def _unique(rows, key):
     seen = set()
     result = []
@@ -38,10 +46,10 @@ def get_village_detail(village_id: int, db: Session = Depends(get_db)):
         image_path=village.image_path,
         experiences=_unique(
             experiences,
-            lambda e: (e.title.strip(), e.start_date, e.end_date, e.price, e.capacity),
+            experience_key,
         ),
         lodgings=_unique(
             lodgings,
-            lambda l: (l.title.strip(), l.unit.strip(), l.price, l.capacity),
+            lodging_key,
         ),
     )

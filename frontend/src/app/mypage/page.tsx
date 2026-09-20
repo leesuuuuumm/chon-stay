@@ -9,12 +9,16 @@ import DesktopSectionNav from "@/components/DesktopSectionNav";
 import AuthNavStatus from "@/components/AuthNavStatus";
 import Badge from "@/components/ui/Badge";
 import Card from "@/components/ui/Card";
+import { ReviewFormModal, Stars } from "@/components/ReviewModals";
 import { getVillage } from "@/lib/mockData";
 import { useAppStore } from "@/lib/store";
 import {
   extractErrorMessage,
   fetchHostBookings,
   cancelMyBooking,
+  createReview,
+  deleteReview,
+  updateReview,
   fetchMyBookings,
   fetchMyCoupons,
   fetchMyVillageApplication,
@@ -23,6 +27,7 @@ import {
   type CouponStatus,
   type HostBooking,
   type MyBooking,
+  type MyBookingItem,
   type VillageApplication,
 } from "@/lib/api";
 import { formatKstDate, formatMonthDay } from "@/lib/dates";
@@ -74,6 +79,40 @@ export default function MyPage() {
   const [myBookingsError, setMyBookingsError] = useState<string | null>(null);
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<number | null>(null);
+
+  // 리뷰 쓰기 창에 띄울 예약 항목
+  const [reviewTarget, setReviewTarget] = useState<{ bookingId: number; item: MyBookingItem } | null>(null);
+
+  const handleReviewSubmit = async (rating: number, comment: string) => {
+    if (!accessToken || !reviewTarget) return;
+    const { bookingId, item } = reviewTarget;
+    // 이미 쓴 리뷰가 있으면 수정, 없으면 새로 등록
+    const review = item.review
+      ? await updateReview(accessToken, item.review.id, { rating, comment })
+      : await createReview(accessToken, { booking_item_id: item.id, rating, comment });
+    setMyBookings(
+      (list) =>
+        list?.map((b) =>
+          b.id === bookingId
+            ? { ...b, items: b.items.map((i) => (i.id === item.id ? { ...i, can_review: false, review } : i)) }
+            : b,
+        ) ?? null,
+    );
+    setReviewTarget(null);
+  };
+
+  const handleReviewDelete = async (item: MyBookingItem) => {
+    if (!accessToken || !item.review) return;
+    if (!window.confirm("리뷰를 삭제할까요?")) return;
+    setCancelError(null);
+    try {
+      await deleteReview(accessToken, item.review.id);
+      // 삭제하면 다시 리뷰를 쓸 수 있으므로 서버 기준으로 목록을 새로 받는다.
+      setMyBookings(await fetchMyBookings(accessToken));
+    } catch (err) {
+      setCancelError(extractErrorMessage(err, "리뷰를 삭제하지 못했어요."));
+    }
+  };
 
   const handleCancel = async (b: MyBooking) => {
     if (!accessToken) return;
@@ -235,17 +274,45 @@ export default function MyPage() {
                             {MY_BOOKING_STATUS_TEXT[b.status]}
                           </Badge>
                         </div>
-                        <ul className="space-y-0.5 text-sm text-ink-soft">
-                          {b.items.map((item, i) => (
-                            <li key={i} className="flex justify-between gap-2">
-                              <span>
-                                <span className="mr-1.5 text-xs text-ink-faint">
-                                  {item.type === "experience" ? "체험" : "숙박"}
+                        <ul className="space-y-1.5 text-sm text-ink-soft">
+                          {b.items.map((item) => (
+                            <li key={item.id}>
+                              <div className="flex justify-between gap-2">
+                                <span>
+                                  <span className="mr-1.5 text-xs text-ink-faint">
+                                    {item.type === "experience" ? "체험" : "숙박"}
+                                  </span>
+                                  {item.title}
+                                  {itemQuantityLabel(item)}
                                 </span>
-                                {item.title}
-                                {itemQuantityLabel(item)}
-                              </span>
-                              <span>{item.subtotal.toLocaleString()}원</span>
+                                <span>{item.subtotal.toLocaleString()}원</span>
+                              </div>
+                              {item.can_review && (
+                                <button
+                                  onClick={() => setReviewTarget({ bookingId: b.id, item })}
+                                  className="mt-1 rounded-lg border border-clay-300 bg-clay-50 px-3 py-1.5 text-xs font-semibold text-clay-700"
+                                >
+                                  {item.type === "experience" ? "체험 리뷰쓰기" : "숙박 리뷰쓰기"}
+                                </button>
+                              )}
+                              {item.review && (
+                                <div className="mt-0.5 flex items-center gap-1.5 text-xs text-ink-faint">
+                                  <Stars rating={item.review.rating} />
+                                  <span className="min-w-0 flex-1 truncate">{item.review.comment}</span>
+                                  <button
+                                    onClick={() => setReviewTarget({ bookingId: b.id, item })}
+                                    className="shrink-0 underline"
+                                  >
+                                    수정
+                                  </button>
+                                  <button
+                                    onClick={() => handleReviewDelete(item)}
+                                    className="shrink-0 underline"
+                                  >
+                                    삭제
+                                  </button>
+                                </div>
+                              )}
                             </li>
                           ))}
                         </ul>
@@ -379,6 +446,14 @@ export default function MyPage() {
         </div>
         <BottomNav />
       </Shell>
+      {reviewTarget && (
+        <ReviewFormModal
+          title={`${reviewTarget.item.type === "experience" ? "체험" : "숙박"} 리뷰 · ${reviewTarget.item.title}`}
+          initial={reviewTarget.item.review ?? undefined}
+          onClose={() => setReviewTarget(null)}
+          onSubmit={handleReviewSubmit}
+        />
+      )}
     </>
   );
 }
