@@ -166,39 +166,6 @@ export function getVillage(id: string) {
 // 마을 주민/이장 대시보드 목데이터 (양지리 두레마을 기준)
 export const HOST_VILLAGE = VILLAGES[0];
 
-export type ReservationRequest = {
-  id: string;
-  applicant: string;
-  people: number;
-  detail: string;
-  capacityNote?: string;
-  status: "pending" | "approved" | "rejected";
-};
-
-export const HOST_RESERVATIONS: ReservationRequest[] = [
-  {
-    id: "req-1",
-    applicant: "김OO",
-    people: 2,
-    detail: "모내기 2일 + 두레민박 1박",
-    status: "pending",
-  },
-  {
-    id: "req-2",
-    applicant: "이OO",
-    people: 4,
-    detail: "장 담그기 체험",
-    capacityNote: "정원 6/10",
-    status: "pending",
-  },
-];
-
-export const HOST_STATS = {
-  newReservations: 3,
-  todayVisits: 2,
-  unreadReviews: 5,
-};
-
 export const HOST_INSIGHTS = {
   visitTrend: [30, 42, 38, 55, 78],
   revisitRate: 38,

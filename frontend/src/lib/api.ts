@@ -378,6 +378,8 @@ export type VillageExperience = {
   id: number;
   title: string;
   season: string | null;
+  start_date: string;
+  end_date: string;
   price: number;
   capacity: number;
 };
@@ -418,6 +420,70 @@ export async function createBooking(token: string, payload: BookingPayload) {
   const { data } = await api.post('/api/bookings/', payload, {
     headers: { Authorization: `Bearer ${token}` },
   });
+  return data;
+}
+
+export type BookingStatus = 'pending' | 'approved' | 'rejected';
+
+export type HostBookingItem = {
+  type: 'experience' | 'lodging';
+  title: string;
+  quantity: number;
+  unit_price: number;
+  subtotal: number;
+};
+
+export type HostBooking = {
+  id: number;
+  status: BookingStatus;
+  headcount: number;
+  start_date: string;
+  end_date: string;
+  total_price: number;
+  requested_at: string;
+  decided_at: string | null;
+  applicant_name: string;
+  items: HostBookingItem[];
+};
+
+export type MyBooking = {
+  id: number;
+  status: BookingStatus;
+  headcount: number;
+  start_date: string;
+  end_date: string;
+  total_price: number;
+  requested_at: string;
+  decided_at: string | null;
+  village_id: number;
+  village_name: string | null;
+  items: HostBookingItem[];
+};
+
+export async function fetchMyBookings(token: string) {
+  const { data } = await api.get<MyBooking[]>('/api/bookings/mine', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return data;
+}
+
+export async function fetchHostBookings(token: string) {
+  const { data } = await api.get<HostBooking[]>('/api/bookings/host', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return data;
+}
+
+export async function decideHostBooking(
+  token: string,
+  bookingId: number,
+  decision: 'approve' | 'reject',
+) {
+  const { data } = await api.post<HostBooking>(
+    `/api/bookings/host/${bookingId}/${decision}`,
+    null,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
   return data;
 }
 
