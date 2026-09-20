@@ -7,7 +7,11 @@ import AppHeader from '@/components/AppHeader';
 import PhotoPlaceholder from '@/components/PhotoPlaceholder';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
-import { getVillageDetail, extractErrorMessage } from '@/lib/api';
+import {
+  getVillageDetail,
+  extractErrorMessage,
+  resolveImageUrl,
+} from '@/lib/api';
 import type { VillageDetail } from '@/lib/api';
 import { useAppStore } from '@/lib/store';
 
@@ -96,10 +100,19 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
 
       <div className="lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-8 lg:px-8 lg:py-8">
         <div className="min-w-0">
-          <PhotoPlaceholder
-            label="village hero"
-            className="h-44 md:h-64 lg:h-80 lg:rounded-2xl"
-          />
+          {village.image_path ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={resolveImageUrl(village.image_path)}
+              alt={village.name}
+              className="h-44 w-full object-cover md:h-64 lg:h-80 lg:rounded-2xl"
+            />
+          ) : (
+            <PhotoPlaceholder
+              label="village hero"
+              className="h-44 md:h-64 lg:h-80 lg:rounded-2xl"
+            />
+          )}
 
           <div className="px-5 py-4 md:px-8 lg:px-0">
             <h2 className="text-xl font-bold md:text-2xl">{village.name}</h2>

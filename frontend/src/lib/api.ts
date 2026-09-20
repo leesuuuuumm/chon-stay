@@ -26,9 +26,11 @@ api.interceptors.response.use(
 
 // 백엔드가 내려주는 image_path는 "/media/..." 형태의 상대 경로라 API 서버 주소를 붙여줘야 한다.
 export function resolveImageUrl(imagePath: string) {
+  if (imagePath.startsWith('http')) {
+    return imagePath;
+  }
   return `${api.defaults.baseURL}${imagePath}`;
 }
-
 export type AuthUser = {
   id: number;
   email: string;
@@ -394,6 +396,7 @@ export type VillageDetail = {
   id: number;
   name: string;
   description: string | null;
+  image_path: string | null;
   experiences: VillageExperience[];
   lodgings: VillageLodging[];
 };

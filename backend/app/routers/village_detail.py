@@ -22,6 +22,7 @@ def get_village_detail(village_id: int, db: Session = Depends(get_db)):
         id=village.id,
         name=village.name,
         description=village.description,
+        image_path=village.image_path,  
         experiences=experiences,
         lodgings=lodgings,
     )

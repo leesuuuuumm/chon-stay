@@ -28,5 +28,6 @@ class VillageDetailResponse(BaseModel):
     id: int
     name: str
     description: str | None = None
+    image_path: str | None = None   # 추가
     experiences: List[ExperienceDetail]
     lodgings: List[LodgingDetail]
