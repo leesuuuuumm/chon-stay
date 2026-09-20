@@ -1,6 +1,7 @@
 import calendar
 from datetime import date, datetime, time, timedelta, timezone
 
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -74,25 +75,31 @@ def ensure_welcome_coupon(db: Session, account_id: int) -> None:
         db.rollback()  # 동시에 두 번 발급 요청이 들어온 경우
 
 
+def _stay_coupon_expiry(requested_at: datetime | None) -> datetime:
+    """숙박 예약 신청일(한국 날짜)로부터 1년 뒤 그날 23:59:59(KST)를 DB 기준 UTC 시각으로 돌려준다."""
+    requested_kst = (requested_at or _utc_now()) + timedelta(hours = 9)
+    end_of_day_kst = datetime.combine(requested_kst.date(), time(23, 59, 59))
+    return _add_months(end_of_day_kst, STAY_VALID_MONTHS) - timedelta(hours = 9)
+
+
 def ensure_stay_coupons(db: Session, account_id: int) -> None:
     """숙박이 포함된 '승인된' 예약의 체크아웃 날짜가 되면 예약 1건당 숙박 쿠폰 1장을 발급한다.
 
     취소/거절된 예약은 status가 approved가 아니므로 발급 대상이 아니다.
+    유효기간은 숙박을 예약(신청)한 날로부터 1년이다.
     """
-    has_lodging = (
-        db.query(BookingItem.id)
-        .filter(BookingItem.booking_id == Booking.id, BookingItem.lodging_id.isnot(None))
-        .exists()
-    )
+    # 예약별로 숙박 항목 중 가장 늦은 체크아웃 날짜가 오늘 이전(당일 포함)이어야 한다.
     due = (
-        db.query(Booking.id, Booking.end_date)
+        db.query(Booking.id, func.max(BookingItem.end_date), func.min(Booking.requested_at))
+        .join(BookingItem, BookingItem.booking_id == Booking.id)
         .filter(
             Booking.account_id == account_id,
             Booking.status == "approved",
-            Booking.end_date > Booking.start_date,
-            Booking.end_date <= today_kst(),
-            has_lodging,
+            BookingItem.lodging_id.isnot(None),
+            BookingItem.end_date.isnot(None),
         )
+        .group_by(Booking.id)
+        .having(func.max(BookingItem.end_date) <= today_kst())
         .all()
     )
     if not due:
@@ -103,10 +110,13 @@ def ensure_stay_coupons(db: Session, account_id: int) -> None:
             Coupon.account_id == account_id, Coupon.code.like(f"{STAY_CODE_PREFIX}%")
         )
     }
-    for booking_id, end_date in due:
+    for booking_id, _end_date, requested_at in due:
         code = f"{STAY_CODE_PREFIX}{booking_id}"
         if code in issued:
             continue
+        expires_at = _stay_coupon_expiry(requested_at)
+        if expires_at < _utc_now():
+            continue  # 예약일로부터 1년이 이미 지났다면 발급하지 않는다.
         db.add(
             Coupon(
                 account_id = account_id,
@@ -114,7 +124,7 @@ def ensure_stay_coupons(db: Session, account_id: int) -> None:
                 title = STAY_TITLE,
                 discount_percent = STAY_PERCENT,
                 applies_to = "lodging",
-                expires_at = _add_months(datetime.combine(end_date, time(23, 59, 59)), STAY_VALID_MONTHS),
+                expires_at = expires_at,
             )
         )
         try:

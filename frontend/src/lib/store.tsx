@@ -12,9 +12,13 @@ export type CartItem = {
   title: string;
   meta: string;
   price: number;
-  // 숙박 전용: 박수와 1박 가격 (price = unitPrice * nights)
-  nights?: number;
+  // price = unitPrice * (숙박: nights, 체험: headcount)
   unitPrice?: number;
+  nights?: number; // 숙박 전용
+  checkIn?: string; // 숙박 전용 (YYYY-MM-DD)
+  checkOut?: string; // 숙박 전용 (YYYY-MM-DD)
+  headcount?: number; // 체험 전용 (참여 인원)
+  maxHeadcount?: number; // 체험 전용 (정원)
 };
 
 type AppState = {
@@ -34,6 +38,7 @@ type AppContextValue = AppState & {
   toggleInterest: (interest: Interest) => void;
   setDuration: (duration: Duration) => void;
   addToCart: (item: CartItem) => void;
+  updateCartItem: (id: string, patch: Partial<CartItem>) => void;
   removeFromCart: (id: string) => void;
   clearCart: () => void;
   subscribeVillage: (villageId: string) => void;
@@ -102,6 +107,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             ? s
             : { ...s, cart: [...s.cart, item] },
         ),
+      updateCartItem: (id, patch) =>
+        setState((s) => ({
+          ...s,
+          cart: s.cart.map((c) => (c.id === id ? { ...c, ...patch } : c)),
+        })),
       removeFromCart: (id) =>
         setState((s) => ({ ...s, cart: s.cart.filter((c) => c.id !== id) })),
       clearCart: () => setState((s) => ({ ...s, cart: [] })),

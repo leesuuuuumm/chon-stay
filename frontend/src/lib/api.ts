@@ -357,6 +357,7 @@ export type VillageRecommendation = {
   explanation: string;
   matching_score: number;
   alert: boolean;
+  image_path?: string | null;
 };
 
 export type OnboardingResponse = {
@@ -384,6 +385,7 @@ export type VillageExperience = {
   end_date: string;
   price: number;
   capacity: number;
+  images: ListingImage[];
 };
 
 export type VillageLodging = {
@@ -392,6 +394,7 @@ export type VillageLodging = {
   unit: string;
   price: number;
   capacity: number;
+  images: ListingImage[];
 };
 
 export type VillageDetail = {
@@ -409,12 +412,14 @@ export type BookingItemPayload = {
   subtotal: number;
   experience_id?: number;
   lodging_id?: number;
+  check_in?: string;
+  check_out?: string;
 };
 
 export type BookingPayload = {
   village_id: number;
   headcount: number;
-  visit_date: string;
+  visit_date?: string;
   total_price: number;
   items: BookingItemPayload[];
   coupon_id?: number;
@@ -453,6 +458,13 @@ export async function fetchMyCoupons(token: string) {
   return data;
 }
 
+export async function getLodgingUnavailableDates(lodgingId: number) {
+  const { data } = await api.get<{ dates: string[] }>(
+    `/api/listings/lodgings/${lodgingId}/unavailable-dates`,
+  );
+  return data.dates;
+}
+
 export type BookingStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
 
 export type HostBookingItem = {
@@ -461,6 +473,8 @@ export type HostBookingItem = {
   quantity: number;
   unit_price: number;
   subtotal: number;
+  start_date?: string | null;
+  end_date?: string | null;
 };
 
 export type HostBooking = {

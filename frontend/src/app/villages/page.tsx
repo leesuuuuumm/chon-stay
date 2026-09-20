@@ -25,6 +25,7 @@ export default function VillagesPage() {
       name: r.village_name,
       matchTag: r.explanation,
       matchPercent: r.matching_score,
+      imagePath: r.image_path ?? null,
       urgencyLabel: r.alert ? '방문객 유입이 특히 필요한 마을' : undefined,
       // VillageCard가 안 쓰지만 Village 타입이 요구할 수 있는 나머지 필드는 임시로 채움
       interestTags: [],
@@ -69,7 +70,11 @@ export default function VillagesPage() {
         <div className="grid grid-cols-1 gap-4 px-5 py-5 sm:grid-cols-2 md:px-8 lg:grid-cols-3">
           {villages.length > 0 ? (
             villages.map((village) => (
-              <VillageCard key={village.id} village={village} />
+              <VillageCard
+                key={village.id}
+                village={village}
+                imagePath={village.imagePath}
+              />
             ))
           ) : (
             <p className="col-span-full py-12 text-center text-sm text-ink-faint">

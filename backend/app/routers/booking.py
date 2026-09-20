@@ -1,5 +1,4 @@
 from collections import defaultdict
-from datetime import timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -34,9 +33,53 @@ def create_booking(
     for item in req.items:
         if item.subtotal != item.unit_price * item.quantity:
             raise HTTPException(status_code=400, detail="예약 항목 금액이 올바르지 않습니다.")
+    today = today_kst()
+    has_experience = any(item.experience_id is not None for item in req.items)
+    if has_experience:
+        if req.visit_date is None:
+            raise HTTPException(status_code=400, detail="체험 방문 날짜를 선택해주세요.")
+        if req.visit_date < today:
+            raise HTTPException(status_code=400, detail="지난 날짜는 선택할 수 없어요.")
+    # 숙박: 체크인/체크아웃 날짜로 박수를 정하고, 이미 예약된 날짜와 겹치면 예약할 수 없다.
+    for item in req.items:
+        if item.lodging_id is None:
+            continue
+        if item.check_in is None or item.check_out is None:
+            raise HTTPException(status_code=400, detail="숙박 체크인/체크아웃 날짜를 선택해주세요.")
+        nights = (item.check_out - item.check_in).days
+        if nights < 1:
+            raise HTTPException(status_code=400, detail="체크아웃은 체크인 다음 날부터 선택할 수 있어요.")
+        if nights > 30:
+            raise HTTPException(status_code=400, detail="숙박은 최대 30박까지 예약할 수 있어요.")
+        if item.check_in < today:
+            raise HTTPException(status_code=400, detail="지난 날짜는 선택할 수 없어요.")
+        if item.quantity != nights:
+            raise HTTPException(status_code=400, detail="숙박 박수가 선택한 날짜와 맞지 않아요.")
+        # 같은 숙소에 대한 동시 예약을 순서대로 처리하기 위해 숙소 행을 잠근다.
+        db.query(Lodging.id).filter(Lodging.id == item.lodging_id).with_for_update().first()
+        if _lodging_has_conflict(db, item.lodging_id, item.check_in, item.check_out):
+            raise HTTPException(status_code=409, detail="선택한 날짜에는 이미 예약된 숙소예요.")
+    # 체험 항목의 수량은 참여 인원이며, 정원을 넘을 수 없다.
+    experience_ids = [item.experience_id for item in req.items if item.experience_id is not None]
+    if experience_ids:
+        capacities = dict(
+            db.query(Experience.id, Experience.capacity).filter(Experience.id.in_(experience_ids)).all()
+        )
+        for item in req.items:
+            capacity = capacities.get(item.experience_id) if item.experience_id is not None else None
+            if capacity is not None and item.quantity > capacity:
+                raise HTTPException(status_code=400, detail=f"체험 정원({capacity}명)을 초과했어요.")
+
     subtotal = sum(item.subtotal for item in req.items)
-    # 숙박은 항목의 수량이 박수이고, 체크아웃 날짜 = 체크인(방문일) + 박수
-    nights = max((item.quantity for item in req.items if item.lodging_id is not None), default=0)
+    # 항목별 날짜: 체험은 방문일, 숙박은 체크인/체크아웃
+    item_dates = [
+        (item.check_in, item.check_out) if item.lodging_id is not None else (req.visit_date, req.visit_date)
+        for item in req.items
+    ]
+    starts = [start for start, _ in item_dates if start is not None]
+    ends = [end for _, end in item_dates if end is not None]
+    # 예약 인원 = 체험 참여 인원 중 가장 큰 값 (체험 없이 숙박만 예약하면 1)
+    headcount = max((item.quantity for item in req.items if item.experience_id is not None), default=1)
     coupon = None
     discount = 0
     if req.coupon_id is not None:
@@ -58,9 +101,9 @@ def create_booking(
 
     booking = Booking(
         status="pending",
-        headcount=req.headcount,
-        start_date=req.visit_date,
-        end_date=req.visit_date + timedelta(days=nights),
+        headcount=headcount,
+        start_date=min(starts) if starts else today,
+        end_date=max(ends) if ends else today,
         total_price=subtotal - discount,
         account_id=current_user.id,
         village_id=req.village_id,
@@ -68,7 +111,7 @@ def create_booking(
     db.add(booking)
     db.flush()
 
-    for item in req.items:
+    for item, (start, end) in zip(req.items, item_dates):
         db.add(BookingItem(
             quantity=item.quantity,
             unit_price=item.unit_price,
@@ -76,6 +119,8 @@ def create_booking(
             experience_id=item.experience_id,
             lodging_id=item.lodging_id,
             booking_id=booking.id,
+            start_date=start,
+            end_date=end,
         ))
     if coupon:
         coupon.status = "used"
@@ -96,6 +141,22 @@ def create_booking(
 def _discount_of(booking: Booking, items: list[HostBookingItem]) -> int:
     # 결제 금액은 (항목 합계 - 쿠폰 할인)으로 저장되므로 차이가 곧 할인액이다.
     return max(0, sum(item.subtotal for item in items) - booking.total_price)
+
+
+def _lodging_has_conflict(db: Session, lodging_id: int, check_in, check_out) -> bool:
+    # 체크아웃 날짜는 비워지는 날이라, [체크인, 체크아웃) 구간이 겹칠 때만 충돌이다.
+    return (
+        db.query(BookingItem.id)
+        .join(Booking, Booking.id == BookingItem.booking_id)
+        .filter(
+            BookingItem.lodging_id == lodging_id,
+            Booking.status.in_(("pending", "approved")),
+            BookingItem.start_date < check_out,
+            BookingItem.end_date > check_in,
+        )
+        .first()
+        is not None
+    )
 
 
 def _load_items(db: Session, booking_ids: list[int]) -> dict[int, list[HostBookingItem]]:
@@ -119,6 +180,8 @@ def _load_items(db: Session, booking_ids: list[int]) -> dict[int, list[HostBooki
                 quantity=item.quantity,
                 unit_price=item.unit_price,
                 subtotal=item.subtotal,
+                start_date=item.start_date,
+                end_date=item.end_date,
             )
         )
     return items_by_booking

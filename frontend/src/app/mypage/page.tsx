@@ -25,19 +25,14 @@ import {
   type MyBooking,
   type VillageApplication,
 } from "@/lib/api";
-import { formatMonthDay } from "@/lib/dates";
-import { STATUS_LABEL, formatRequestedDate, itemQuantityLabel, stayLabel, todayIso } from "@/lib/hostBookings";
+import { formatKstDate, formatMonthDay } from "@/lib/dates";
+import { STATUS_LABEL, formatRequestedDate, itemQuantityLabel, lodgingCheckout, stayLabel, todayIso } from "@/lib/hostBookings";
 
 const COUPON_STATUS_TEXT: Record<CouponStatus, string> = {
   available: "사용 가능",
   used: "사용 완료",
   expired: "기간 만료",
 };
-
-function formatDate(iso: string) {
-  const [, month, day] = iso.slice(0, 10).split("-");
-  return `${Number(month)}/${Number(day)}`;
-}
 
 const NAV_ITEMS = [
   { href: "/villages", label: "마을 찾기" },
@@ -266,8 +261,8 @@ export default function MyPage() {
                         {(b.status === "pending" || b.status === "approved") &&
                           b.items.some((i) => i.type === "lodging") && (
                             <p className="text-xs text-clay-600">
-                              체크아웃일({formatMonthDay(b.end_date)})에 숙박 20% 할인 쿠폰이 발급돼요 · 그 전에
-                              취소하면 발급되지 않아요
+                              체크아웃일({formatMonthDay(lodgingCheckout(b))})에 숙박 20% 할인 쿠폰이 발급돼요(예약일로부터
+                              1년간 유효) · 그 전에 취소하면 발급되지 않아요
                             </p>
                           )}
                         {(b.status === "pending" || b.status === "approved") && todayIso() < b.start_date && (
@@ -362,8 +357,8 @@ export default function MyPage() {
                       </p>
                       <p className="text-xs text-ink-faint">
                         {c.status === "used" && c.used_at
-                          ? `${formatDate(c.used_at)} 사용`
-                          : `${formatDate(c.expires_at)}까지`}
+                          ? `${formatKstDate(c.used_at)} 사용`
+                          : `${formatKstDate(c.expires_at)}까지`}
                       </p>
                     </Card>
                   ))

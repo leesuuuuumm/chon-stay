@@ -7,14 +7,17 @@ import AppHeader from '@/components/AppHeader';
 import PhotoPlaceholder from '@/components/PhotoPlaceholder';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
+import StayCalendar from '@/components/StayCalendar';
+import PhotoViewer, { CardPhoto, orderImages } from '@/components/PhotoViewer';
 import {
   getVillageDetail,
+  getLodgingUnavailableDates,
   extractErrorMessage,
   resolveImageUrl,
 } from '@/lib/api';
-import type { VillageDetail } from '@/lib/api';
+import type { ListingImage, VillageDetail } from '@/lib/api';
 import { useAppStore } from '@/lib/store';
-import { addDays, formatMonthDay } from '@/lib/dates';
+import { addDays, diffDays, formatMonthDay } from '@/lib/dates';
 
 type Tab = '체험' | '숙박';
 
@@ -29,6 +32,7 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
   const {
     cart,
     addToCart,
+    updateCartItem,
     removeFromCart,
     duration,
     visitDate,
@@ -48,10 +52,25 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
   const initialTab = searchParams.get('tab');
   const [tab, setTab] = useState<Tab>(isTab(initialTab) ? initialTab : '체험');
   const [village, setVillage] = useState<VillageDetail | null>(null);
-  const [nightsMap, setNightsMap] = useState<Record<string, number>>({});
-  const getNights = (itemId: string) => nightsMap[itemId] || 1;
-  const setNights = (itemId: string, value: number) =>
-    setNightsMap((n) => ({ ...n, [itemId]: Math.min(14, Math.max(1, value || 1)) }));
+  // 숙박: 달력으로 고른 체크인/체크아웃, 이미 예약된 날짜, 달력 펼침 여부
+  const [stayDates, setStayDates] = useState<
+    Record<string, { checkIn: string | null; checkOut: string | null }>
+  >({});
+  const [unavailable, setUnavailable] = useState<Record<string, Set<string>>>(
+    {},
+  );
+  const [calendarOpen, setCalendarOpen] = useState<Record<string, boolean>>({});
+  // 입력 도중(예: 지운 뒤 새로 입력)에는 입력값을 그대로 보여주고, 포커스를 잃으면 실제 값으로 되돌린다.
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  // 카드의 사진/제목을 누르면 열리는 사진 뷰어
+  const [viewer, setViewer] = useState<{
+    title: string;
+    images: ListingImage[];
+  } | null>(null);
+  const parseCount = (raw: string, max: number) => {
+    const n = Math.floor(Number(raw));
+    return Number.isFinite(n) && n >= 1 ? Math.min(max, n) : null;
+  };
   const getHeadcount = (itemId: string) => headcounts[itemId] || 1;
   const setHeadcount = (itemId: string, value: number) =>
     setHeadcounts((h) => ({ ...h, [itemId]: Math.max(1, value) }));
@@ -67,6 +86,17 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
       )
       .finally(() => setLoading(false));
   }, [params.id]);
+
+  useEffect(() => {
+    if (!village) return;
+    village.lodgings.forEach((lodge) => {
+      getLodgingUnavailableDates(lodge.id)
+        .then((dates) =>
+          setUnavailable((u) => ({ ...u, [String(lodge.id)]: new Set(dates) })),
+        )
+        .catch(() => {});
+    });
+  }, [village]);
 
   const isOperating = (exp: { start_date: string; end_date: string }) =>
     !visitDate || (exp.start_date <= visitDate && visitDate <= exp.end_date);
@@ -123,10 +153,14 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
         title: exp.title,
         meta: exp.season || '',
         price: exp.price,
+        headcount: 1,
+        unitPrice: exp.price,
       });
     }
+    // 숙박은 방문 날짜가 정해져 있고 그날 밤이 비어 있을 때만 1박으로 함께 담는다.
     const lodge = village.lodgings[0];
-    if (lodge) {
+    const booked = lodge ? unavailable[String(lodge.id)] : undefined;
+    if (lodge && visitDate && booked && !booked.has(visitDate)) {
       addToCart({
         id: String(lodge.id),
         villageId: String(village.id),
@@ -137,6 +171,8 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
         price: lodge.price,
         nights: 1,
         unitPrice: lodge.price,
+        checkIn: visitDate,
+        checkOut: addDays(visitDate, 1),
       });
     }
   };
@@ -170,7 +206,7 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
             )}
             <div className="mt-3">
               <label className="mb-1 block text-sm font-semibold text-ink-soft">
-                방문 날짜
+                체험 방문 날짜
               </label>
               <input
                 type="date"
@@ -214,13 +250,36 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
                   {village.experiences.map((exp) => {
                     const itemId = String(exp.id);
                     const inCart = cart.some((c) => c.id === itemId);
-                    const hc = getHeadcount(itemId);
+                    const cartItem = cart.find((c) => c.id === itemId);
+                    const hc = cartItem?.headcount ?? getHeadcount(itemId);
+                    const changeHeadcount = (raw: string) => {
+                      setDrafts((d) => ({ ...d, [itemId]: raw }));
+                      const next = parseCount(raw, exp.capacity);
+                      if (next === null) return;
+                      setHeadcount(itemId, next);
+                      if (cartItem) {
+                        updateCartItem(itemId, {
+                          headcount: next,
+                          price: exp.price * next,
+                          title: `${exp.title} · ${next}인`,
+                        });
+                      }
+                    };
                     const operating = isOperating(exp);
+                    const photos = orderImages(exp.images);
                     return (
                       <Card
                         key={exp.id}
                         className={`space-y-2 ${operating ? '' : 'opacity-60'}`}
                       >
+                        <div
+                          className={photos.length ? 'cursor-pointer space-y-2' : 'space-y-2'}
+                          onClick={() =>
+                            photos.length > 0 &&
+                            setViewer({ title: exp.title, images: photos })
+                          }
+                        >
+                          <CardPhoto images={photos} alt={exp.title} />
                         <div className="flex items-center justify-between gap-3">
                           <div className="min-w-0 flex-1">
                             <p className="font-semibold">{exp.title}</p>
@@ -236,6 +295,7 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
                             </p>
                           </div>
                         </div>
+                        </div>
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-2">
                             <span className="text-sm text-ink-soft">인원</span>
@@ -243,12 +303,15 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
                               type="number"
                               min={1}
                               max={exp.capacity}
-                              value={hc}
-                              onChange={(e) =>
-                                setHeadcount(itemId, Number(e.target.value))
+                              value={drafts[itemId] ?? hc}
+                              onChange={(e) => changeHeadcount(e.target.value)}
+                              onBlur={() =>
+                                setDrafts((d) => {
+                                  const { [itemId]: _removed, ...rest } = d;
+                                  return rest;
+                                })
                               }
                               className="w-16 rounded-lg border border-line px-2 py-1 text-sm"
-                              disabled={inCart}
                             />
                             <span className="text-sm font-semibold">
                               {(exp.price * hc).toLocaleString()}원
@@ -269,6 +332,9 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
                                 title: `${exp.title} · ${hc}인`,
                                 meta: exp.season || '',
                                 price: exp.price * hc,
+                                headcount: hc,
+                                maxHeadcount: exp.capacity,
+                                unitPrice: exp.price,
                               })
                             }
                           >
@@ -296,52 +362,102 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
                 <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-1">
                   {village.lodgings.map((lodge) => {
                     const itemId = String(lodge.id);
-                    const inCart = cart.some((c) => c.id === itemId);
-                    const nights = getNights(itemId);
+                    const lodgePhotos = orderImages(lodge.images);
+                    const lodgeCartItem = cart.find((c) => c.id === itemId);
+                    const inCart = !!lodgeCartItem;
+                    const dates = stayDates[itemId] ?? {
+                      checkIn: lodgeCartItem?.checkIn ?? null,
+                      checkOut: lodgeCartItem?.checkOut ?? null,
+                    };
+                    const nights =
+                      dates.checkIn && dates.checkOut
+                        ? diffDays(dates.checkIn, dates.checkOut)
+                        : 0;
                     const unitPrice = lodge.price;
+                    const calendarShown = calendarOpen[itemId] ?? nights === 0;
+                    const changeDates = (
+                      checkIn: string | null,
+                      checkOut: string | null,
+                    ) => {
+                      setStayDates((d) => ({ ...d, [itemId]: { checkIn, checkOut } }));
+                      if (checkIn && checkOut) {
+                        setCalendarOpen((o) => ({ ...o, [itemId]: false }));
+                        if (lodgeCartItem) {
+                          const n = diffDays(checkIn, checkOut);
+                          updateCartItem(itemId, {
+                            checkIn,
+                            checkOut,
+                            nights: n,
+                            price: unitPrice * n,
+                          });
+                        }
+                      }
+                    };
                     return (
-                      <Card key={lodge.id} className="space-y-2">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="min-w-0 flex-1">
-                            <p className="font-semibold">{lodge.title}</p>
-                            <p className="text-sm text-ink-soft">
-                              {lodge.unit} · {lodge.price.toLocaleString()}원 ·
-                              최대 {lodge.capacity}인
-                            </p>
-                            {visitDate && (
-                              <p className="text-xs text-ink-faint">
-                                {formatMonthDay(visitDate)} 체크인 →{' '}
-                                {formatMonthDay(addDays(visitDate, nights))}{' '}
-                                체크아웃 ({nights}박)
-                              </p>
-                            )}
-                          </div>
+                      <Card key={lodge.id} className="space-y-3">
+                        <div
+                          className={lodgePhotos.length ? 'cursor-pointer space-y-2' : 'space-y-2'}
+                          onClick={() =>
+                            lodgePhotos.length > 0 &&
+                            setViewer({ title: lodge.title, images: lodgePhotos })
+                          }
+                        >
+                          <CardPhoto images={lodgePhotos} alt={lodge.title} />
+                        <div className="min-w-0">
+                          <p className="font-semibold">{lodge.title}</p>
+                          <p className="text-sm text-ink-soft">
+                            {lodge.unit} · {lodge.price.toLocaleString()}원 ·
+                            최대 {lodge.capacity}인
+                          </p>
+                        </div>
                         </div>
                         <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-ink-soft">박수</span>
-                            <input
-                              type="number"
-                              min={1}
-                              max={14}
-                              value={nights}
-                              onChange={(e) =>
-                                setNights(itemId, Number(e.target.value))
-                              }
-                              className="w-16 rounded-lg border border-line px-2 py-1 text-sm"
-                              disabled={inCart}
-                            />
-                            <span className="text-sm font-semibold">
-                              {(unitPrice * nights).toLocaleString()}원
-                            </span>
-                          </div>
+                          <p className="text-sm">
+                            {nights > 0 && dates.checkIn && dates.checkOut ? (
+                              <>
+                                <span className="font-semibold">
+                                  {formatMonthDay(dates.checkIn)} 체크인 →{' '}
+                                  {formatMonthDay(dates.checkOut)} 체크아웃
+                                </span>{' '}
+                                <span className="text-ink-soft">({nights}박)</span>
+                              </>
+                            ) : (
+                              <span className="text-ink-faint">
+                                체크인·체크아웃 날짜를 선택해주세요
+                              </span>
+                            )}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setCalendarOpen((o) => ({ ...o, [itemId]: !calendarShown }))
+                            }
+                            className="shrink-0 text-xs text-ink-soft underline underline-offset-2"
+                          >
+                            {calendarShown ? '달력 접기' : '날짜 선택'}
+                          </button>
+                        </div>
+                        {calendarShown && (
+                          <StayCalendar
+                            checkIn={dates.checkIn}
+                            checkOut={dates.checkOut}
+                            unavailable={unavailable[itemId] ?? new Set()}
+                            onChange={changeDates}
+                          />
+                        )}
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-sm font-semibold">
+                            {(unitPrice * nights).toLocaleString()}원
+                          </span>
                           <Button
                             variant={inCart ? 'outline' : 'primary'}
                             size="md"
                             fullWidth={false}
                             className="shrink-0 px-4"
-                            disabled={inCart || !visitDate}
+                            disabled={inCart || nights === 0}
                             onClick={() =>
+                              dates.checkIn &&
+                              dates.checkOut &&
                               addToCart({
                                 id: itemId,
                                 villageId: String(village.id),
@@ -352,14 +468,12 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
                                 price: unitPrice * nights,
                                 nights,
                                 unitPrice,
+                                checkIn: dates.checkIn,
+                                checkOut: dates.checkOut,
                               })
                             }
                           >
-                            {inCart
-                              ? '담김'
-                              : !visitDate
-                                ? '날짜 먼저 선택'
-                                : '담기'}
+                            {inCart ? '담김' : nights === 0 ? '날짜 선택' : '담기'}
                           </Button>
                         </div>
                       </Card>
@@ -465,6 +579,13 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
           </>
         )}
       </div>
+      {viewer && (
+        <PhotoViewer
+          title={viewer.title}
+          images={viewer.images}
+          onClose={() => setViewer(null)}
+        />
+      )}
     </Shell>
   );
 }

@@ -8,7 +8,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import { useAppStore } from '@/lib/store';
-import { addDays, formatMonthDay } from '@/lib/dates';
+import { addDays, formatKstDate, formatMonthDay } from '@/lib/dates';
 import {
   createBooking,
   extractErrorMessage,
@@ -21,6 +21,7 @@ export default function ReservationPage() {
   const {
     cart,
     removeFromCart,
+    updateCartItem,
     clearCart,
     setLastVisitedVillage,
     visitDate,
@@ -68,31 +69,62 @@ export default function ReservationPage() {
   const discount = selectedCoupon ? discountOf(selectedCoupon) : 0;
   const payable = total - discount;
 
+  const hasExperience = cart.some((item) => item.type === 'experience');
+  // 날짜 없이 담겨 있던 예전 숙박 항목은 마을 페이지에서 날짜를 골라 다시 담아야 한다.
+  const hasLodgingWithoutDates = cart.some(
+    (item) => item.type === 'lodging' && (!item.checkIn || !item.checkOut),
+  );
+  const canSubmit =
+    (!hasExperience || !!visitDate) && !hasLodgingWithoutDates;
+
+  const changeCount = (id: string, delta: number) => {
+    const item = cart.find((c) => c.id === id);
+    if (!item || item.type !== 'experience' || item.unitPrice === undefined)
+      return;
+    const next = Math.min(
+      item.maxHeadcount ?? 9999,
+      Math.max(1, (item.headcount ?? 1) + delta),
+    );
+    updateCartItem(id, {
+      headcount: next,
+      price: item.unitPrice * next,
+      title: `${item.title.replace(/ · \d+인$/, '')} · ${next}인`,
+    });
+  };
+
   const handleSubmit = async () => {
-    if (!accessToken || !visitDate || cart.length == 0 || submitting) return;
+    if (!accessToken || !canSubmit || cart.length == 0 || submitting) return;
 
     const villageId = Number(cart[0]?.villageId);
-    const headcount = 1;
+    // 예약 인원 = 체험 참여 인원 중 가장 큰 값 (숙박만 예약하면 1)
+    const headcount = Math.max(
+      1,
+      ...cart
+        .filter((item) => item.type === 'experience')
+        .map((item) => item.headcount ?? 1),
+    );
 
     setSubmitting(true);
     try {
       await createBooking(accessToken, {
         village_id: villageId,
         headcount,
-        visit_date: visitDate,
+        visit_date: hasExperience ? (visitDate ?? undefined) : undefined,
         total_price: total,
         coupon_id: selectedCoupon?.id,
         items: cart.map((item) => ({
-          // 숙박은 수량이 박수, 1박 가격이 단가
-          quantity: item.type === 'lodging' ? (item.nights ?? 1) : 1,
-          unit_price:
+          // 숙박은 수량이 박수, 체험은 수량이 참여 인원 (단가는 1박/1인 가격)
+          quantity:
             item.type === 'lodging'
-              ? (item.unitPrice ?? item.price)
-              : item.price,
+              ? (item.nights ?? 1)
+              : (item.headcount ?? 1),
+          unit_price: item.unitPrice ?? item.price,
           subtotal: item.price,
           experience_id:
             item.type === 'experience' ? Number(item.id) : undefined,
           lodging_id: item.type === 'lodging' ? Number(item.id) : undefined,
+          check_in: item.type === 'lodging' ? item.checkIn : undefined,
+          check_out: item.type === 'lodging' ? item.checkOut : undefined,
         })),
       });
       clearCart();
@@ -112,9 +144,9 @@ export default function ReservationPage() {
     <Shell withBottomPadding size="medium">
       <AppHeader title="신청 장바구니" stage="체험" />
       <div className="flex-1 space-y-3 px-5 py-5">
-        {cart.length > 0 && (
+        {hasExperience && (
           <div className="rounded-xl border border-line bg-white px-4 py-3 text-sm">
-            <span className="font-semibold">방문 날짜</span>
+            <span className="font-semibold">체험 방문 날짜</span>
             <span className="ml-2 text-ink-soft">
               {visitDate || '선택되지 않았어요'}
             </span>
@@ -146,16 +178,45 @@ export default function ReservationPage() {
                 {item.villageName}
               </Badge>
               <p className="mt-2 font-semibold">{item.title}</p>
-              {item.type === 'lodging' && visitDate ? (
-                <p className="text-sm text-ink-soft">
-                  {formatMonthDay(visitDate)} 체크인 →{' '}
-                  {formatMonthDay(addDays(visitDate, item.nights ?? 1))}{' '}
-                  체크아웃 ({item.nights ?? 1}박) · {item.price.toLocaleString()}원
-                </p>
+              {item.type === 'lodging' ? (
+                item.checkIn && item.checkOut ? (
+                  <p className="text-sm text-ink-soft">
+                    {formatMonthDay(item.checkIn)} 체크인 →{' '}
+                    {formatMonthDay(item.checkOut)} 체크아웃 ({item.nights ?? 1}
+                    박) · {item.price.toLocaleString()}원
+                  </p>
+                ) : (
+                  <p className="text-sm text-red-600">
+                    숙박 날짜가 없어요. 삭제하고 마을 페이지에서 날짜를 골라 다시
+                    담아주세요.
+                  </p>
+                )
               ) : (
                 <p className="text-sm text-ink-soft">
                   {item.meta} · {item.price.toLocaleString()}원
                 </p>
+              )}
+              {item.type === 'experience' && item.unitPrice !== undefined && (
+                <div className="mt-2 flex items-center gap-2 text-sm">
+                  <span className="text-ink-soft">인원</span>
+                  <button
+                    onClick={() => changeCount(item.id, -1)}
+                    className="h-7 w-7 rounded-full border border-line text-base leading-none"
+                    aria-label="줄이기"
+                  >
+                    −
+                  </button>
+                  <span className="w-6 text-center font-semibold">
+                    {item.headcount ?? 1}
+                  </span>
+                  <button
+                    onClick={() => changeCount(item.id, 1)}
+                    className="h-7 w-7 rounded-full border border-line text-base leading-none"
+                    aria-label="늘리기"
+                  >
+                    +
+                  </button>
+                </div>
               )}
             </div>
             <button
@@ -185,7 +246,7 @@ export default function ReservationPage() {
                 <option value="">적용 안 함</option>
                 {coupons.map((c) => (
                   <option key={c.id} value={c.id} disabled={!isApplicable(c)}>
-                    {c.title} ({c.expires_at.slice(0, 10)}까지)
+                    {c.title} ({formatKstDate(c.expires_at)}까지)
                     {!isApplicable(c) ? ' - 숙박 예약에만 사용 가능' : ''}
                   </option>
                 ))}
@@ -215,12 +276,12 @@ export default function ReservationPage() {
               {payable.toLocaleString()}원
             </span>
           </div>
-          <Button onClick={handleSubmit} disabled={!visitDate || submitting}>
+          <Button onClick={handleSubmit} disabled={!canSubmit || submitting}>
             {submitting ? '신청 중...' : '신청하기'}
           </Button>
-          {!visitDate && (
+          {hasExperience && !visitDate && (
             <p className="mt-2 text-center text-xs text-red-600">
-              방문 날짜를 선택해주세요.
+              체험 방문 날짜를 선택해주세요.
             </p>
           )}
           <p className="mt-2 text-center text-xs text-ink-faint">

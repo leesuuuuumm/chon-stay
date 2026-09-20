@@ -4,17 +4,19 @@ from datetime import date, datetime
 
 
 class BookingItemRequest(BaseModel):
-    quantity: int = Field(ge=1, le=30)  # 숙박 항목은 박수를 의미한다
+    quantity: int = Field(ge=1)  # 체험: 참여 인원, 숙박: 박수
     unit_price: int
     subtotal: int
     experience_id: Optional[int] = None
     lodging_id: Optional[int] = None
+    check_in: Optional[date] = None  # 숙박 전용
+    check_out: Optional[date] = None  # 숙박 전용
 
 
 class BookingRequest(BaseModel):
     village_id: int
     headcount: int
-    visit_date: date
+    visit_date: Optional[date] = None  # 체험 방문 날짜 (체험이 있을 때 필수)
     total_price: int
     items: List[BookingItemRequest]
     coupon_id: Optional[int] = None
@@ -33,6 +35,8 @@ class HostBookingItem(BaseModel):
     quantity: int
     unit_price: int
     subtotal: int
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
 
 
 class MyBookingResponse(BaseModel):
