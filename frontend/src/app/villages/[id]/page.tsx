@@ -18,7 +18,7 @@ import {
 } from '@/lib/api';
 import type { ListingImage, VillageDetail } from '@/lib/api';
 import { useAppStore } from '@/lib/store';
-import { addDays, diffDays, formatMonthDay } from '@/lib/dates';
+import { diffDays, formatMonthDay } from '@/lib/dates';
 
 type Tab = '체험' | '숙박';
 
@@ -147,41 +147,6 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
   );
   const cartCount = villageCartItems.length;
   const cartTotal = villageCartItems.reduce((sum, item) => sum + item.price, 0);
-
-  const autoRecommend = () => {
-    const exp = village.experiences[0];
-    if (exp) {
-      addToCart({
-        id: String(exp.id),
-        villageId: String(village.id),
-        villageName: village.name,
-        type: 'experience',
-        title: exp.title,
-        meta: exp.season || '',
-        price: exp.price,
-        headcount: 1,
-        unitPrice: exp.price,
-      });
-    }
-    // 숙박은 방문 날짜가 정해져 있고 그날 밤이 비어 있을 때만 1박으로 함께 담는다.
-    const lodge = village.lodgings[0];
-    const booked = lodge ? unavailable[String(lodge.id)] : undefined;
-    if (lodge && visitDate && booked && !booked.has(visitDate)) {
-      addToCart({
-        id: String(lodge.id),
-        villageId: String(village.id),
-        villageName: village.name,
-        type: 'lodging',
-        title: lodge.title,
-        meta: lodge.unit,
-        price: lodge.price,
-        nights: 1,
-        unitPrice: lodge.price,
-        checkIn: visitDate,
-        checkOut: addDays(visitDate, 1),
-      });
-    }
-  };
 
   return (
     <Shell withBottomPadding size="wide">
@@ -550,59 +515,21 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
                 </Button>
               </>
             ) : (
-              <>
-                <p className="mt-1 text-sm text-ink-soft">
-                  체험·숙박을 담으면 여기에 모여요.
-                </p>
-                <Button
-                  className="mt-4"
-                  onClick={() => {
-                    autoRecommend();
-                    router.push('/reservation');
-                  }}
-                >
-                  자동 코스 추천
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="mt-2"
-                  onClick={() => setTab('체험')}
-                >
-                  ✎ 커스터마이징
-                </Button>
-              </>
+              <p className="mt-1 text-sm text-ink-soft">
+                체험·숙박을 담으면 여기에 모여요.
+              </p>
             )}
           </Card>
         </aside>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-20 flex gap-2 border-t border-line bg-sand px-5 py-3 lg:hidden">
-        {cartCount > 0 ? (
+      {cartCount > 0 && (
+        <div className="fixed inset-x-0 bottom-0 z-20 flex gap-2 border-t border-line bg-sand px-5 py-3 lg:hidden">
           <Button onClick={() => router.push('/reservation')}>
             {cartCount}개 담김 · 예약하러 가기
           </Button>
-        ) : (
-          <>
-            <Button
-              variant="outline"
-              className="flex-[1.4]"
-              onClick={() => {
-                autoRecommend();
-                router.push('/reservation');
-              }}
-            >
-              자동 코스 추천
-            </Button>
-            <Button
-              variant="ghost"
-              className="flex-1"
-              onClick={() => setTab('체험')}
-            >
-              ✎ 커스터마이징
-            </Button>
-          </>
-        )}
-      </div>
+        </div>
+      )}
       {reviewView && (
         <ReviewListModal
           title={reviewView.title}
