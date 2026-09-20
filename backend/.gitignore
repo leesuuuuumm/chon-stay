@@ -3,4 +3,4 @@ __pycache__/
 *.pyc
 .env
 chonstay.db
-uploads/
+uploads/village_docs/
