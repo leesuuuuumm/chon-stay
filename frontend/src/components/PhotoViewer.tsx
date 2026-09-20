@@ -61,7 +61,7 @@ export default function PhotoViewer({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-black/85"
+      className="fixed inset-0 z-50 flex h-[100dvh] flex-col bg-black/85"
       role="dialog"
       aria-label={`${title} 사진`}
       onClick={onClose}
@@ -84,7 +84,7 @@ export default function PhotoViewer({
       </div>
 
       <div
-        className="relative flex flex-1 items-center justify-center px-2 pb-6"
+        className="relative flex min-h-0 flex-1 items-center justify-center px-2 pb-6"
         onTouchStart={(e) => (touchStartX.current = e.touches[0].clientX)}
         onTouchEnd={(e) => {
           if (touchStartX.current === null || count < 2) return;
@@ -97,7 +97,7 @@ export default function PhotoViewer({
         <img
           src={resolveImageUrl(images[index].image_path)}
           alt={`${title} ${index + 1}`}
-          className="h-full w-full rounded-lg object-contain"
+          className="max-h-full max-w-full rounded-lg object-contain"
           onClick={(e) => e.stopPropagation()}
         />
         {count > 1 && (

@@ -150,7 +150,7 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
 
   return (
     <Shell withBottomPadding size="wide">
-      <AppHeader title={village.name} stage="체험" />
+      <AppHeader title={village.name} />
 
       <div className="lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-8 lg:px-8 lg:py-8">
         <div className="min-w-0">

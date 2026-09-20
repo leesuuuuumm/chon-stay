@@ -27,7 +27,7 @@ module.exports = {
           600: "#4A6636",
         },
         sand: {
-          DEFAULT: "#FAF7F1",
+          DEFAULT: "#FFFFFF",
           dark: "#F1EADC",
         },
         line: "#E7E1D4",

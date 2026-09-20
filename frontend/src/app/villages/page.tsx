@@ -52,7 +52,7 @@ export default function VillagesPage() {
     <>
       <DesktopSectionNav items={NAV_ITEMS} right={<AuthNavStatus />} />
       <Shell withBottomPadding size="wide">
-        <AppHeader title="마을 매칭 추천 결과" stage="발견" />
+        <AppHeader title="마을 매칭 추천 결과" />
         <div className="flex items-center gap-2 px-5 pt-4 md:px-8">
           <button className="h-10 flex-1 rounded-full border border-line bg-white px-4 text-left text-sm text-ink-soft md:flex-none md:w-64">
             필터 · 거리/숙박

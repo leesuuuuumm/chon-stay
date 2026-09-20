@@ -142,7 +142,7 @@ export default function ReservationPage() {
 
   return (
     <Shell withBottomPadding size="medium">
-      <AppHeader title="신청 장바구니" stage="체험" />
+      <AppHeader title="신청 장바구니" />
       <div className="flex-1 space-y-3 px-5 py-5">
         {hasExperience && (
           <div className="rounded-xl border border-line bg-white px-4 py-3 text-sm">
@@ -284,9 +284,6 @@ export default function ReservationPage() {
               체험 방문 날짜를 선택해주세요.
             </p>
           )}
-          <p className="mt-2 text-center text-xs text-ink-faint">
-            → 마을 대시보드로 실시간 알림
-          </p>
         </div>
       )}
     </Shell>

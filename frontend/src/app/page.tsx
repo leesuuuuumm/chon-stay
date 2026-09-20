@@ -2,7 +2,6 @@
 
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Badge from '@/components/ui/Badge';
 import Card from '@/components/ui/Card';
 import PhotoPlaceholder from '@/components/PhotoPlaceholder';
 import AuthNavStatus from '@/components/AuthNavStatus';
@@ -22,16 +21,10 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-sand">
       <div className="mx-auto max-w-3xl px-6 py-16">
-        <div className="flex items-center justify-between">
-          <Badge tone="clay">발견 → 체험 → 관계</Badge>
+        <div className="flex items-center justify-end">
           <AuthNavStatus />
         </div>
-        <h1 className="mt-4 text-4xl font-extrabold leading-tight">촌스테이</h1>
-        <p className="mt-3 max-w-xl text-ink-soft">
-          관심사에 맞는 마을을 매칭해 체류형 농촌 여행을 제안하고, 빈집 체험과
-          밭 가꾸기로 자연스러운 재방문을 만드는 서비스입니다. 일회성 관광을
-          지속가능한 생활인구 유입으로 전환합니다.
-        </p>
+        <h1 className="mt-4 text-4xl font-extrabold leading-tight">숨,표</h1>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           <Card className="flex flex-col gap-4">
@@ -73,23 +66,6 @@ export default function Home() {
               마을 등록하기
             </Link>
           </Card>
-        </div>
-
-        <div className="mt-10 grid gap-3 sm:grid-cols-2">
-          {[
-            '체류 매칭 서비스 (관심사-마을 매칭 코스추천)',
-            '관계인구 전환 장치 (재방문 유도 알림·쿠폰·커뮤니티)',
-            '생활인구 지표 결합 (인구감소 심각도 시각화)',
-            '로컬 파트너 연결 (주민-방문자 매칭, 빈집·밭 체험)',
-          ].map((f) => (
-            <div
-              key={f}
-              className="flex items-start gap-2 text-sm text-ink-soft"
-            >
-              <span className="mt-0.5 text-leaf-500">●</span>
-              {f}
-            </div>
-          ))}
         </div>
       </div>
     </main>
