@@ -1,27 +1,34 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import date, datetime
 
+from app.schemas.review import MyReview
+
 
 class BookingItemRequest(BaseModel):
-    quantity: int
+    quantity: int = Field(ge=1)  # 체험: 참여 인원, 숙박: 박수
     unit_price: int
     subtotal: int
     experience_id: Optional[int] = None
     lodging_id: Optional[int] = None
+    check_in: Optional[date] = None  # 숙박 전용
+    check_out: Optional[date] = None  # 숙박 전용
 
 
 class BookingRequest(BaseModel):
     village_id: int
     headcount: int
-    visit_date: date
+    visit_date: Optional[date] = None  # 체험 방문 날짜 (체험이 있을 때 필수)
     total_price: int
     items: List[BookingItemRequest]
+    coupon_id: Optional[int] = None
 
 
 class BookingResponse(BaseModel):
     booking_id: int
     status: str
+    total_price: int
+    discount_amount: int = 0
 
 
 class HostBookingItem(BaseModel):
@@ -30,6 +37,14 @@ class HostBookingItem(BaseModel):
     quantity: int
     unit_price: int
     subtotal: int
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+
+
+class MyBookingItem(HostBookingItem):
+    id: int
+    can_review: bool = False  # 리뷰를 쓸 수 있는 시점이고 아직 쓰지 않았다
+    review: Optional[MyReview] = None
 
 
 class MyBookingResponse(BaseModel):
@@ -43,7 +58,8 @@ class MyBookingResponse(BaseModel):
     decided_at: Optional[datetime] = None
     village_id: int
     village_name: Optional[str] = None
-    items: List[HostBookingItem]
+    discount_amount: int = 0
+    items: List[MyBookingItem]
 
 
 class HostBookingResponse(BaseModel):
@@ -56,4 +72,5 @@ class HostBookingResponse(BaseModel):
     requested_at: datetime
     decided_at: Optional[datetime] = None
     applicant_name: str
+    discount_amount: int = 0
     items: List[HostBookingItem]

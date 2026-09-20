@@ -9,24 +9,35 @@ import DesktopSectionNav from "@/components/DesktopSectionNav";
 import AuthNavStatus from "@/components/AuthNavStatus";
 import Badge from "@/components/ui/Badge";
 import Card from "@/components/ui/Card";
+import { ReviewFormModal, Stars } from "@/components/ReviewModals";
 import { getVillage } from "@/lib/mockData";
 import { useAppStore } from "@/lib/store";
 import {
   extractErrorMessage,
   fetchHostBookings,
+  cancelMyBooking,
+  createReview,
+  deleteReview,
+  updateReview,
   fetchMyBookings,
+  fetchMyCoupons,
   fetchMyVillageApplication,
   type BookingStatus,
+  type Coupon,
+  type CouponStatus,
   type HostBooking,
   type MyBooking,
+  type MyBookingItem,
   type VillageApplication,
 } from "@/lib/api";
-import { STATUS_LABEL, formatRequestedDate, formatVisitDate } from "@/lib/hostBookings";
+import { formatKstDate, formatMonthDay } from "@/lib/dates";
+import { STATUS_LABEL, formatRequestedDate, itemQuantityLabel, lodgingCheckout, stayLabel, todayIso } from "@/lib/hostBookings";
 
-const COUPONS = [
-  { id: "c1", title: "재방문 숙박 20% 할인", expires: "6/30까지" },
-  { id: "c2", title: "체험 프로그램 5,000원 할인", expires: "7/15까지" },
-];
+const COUPON_STATUS_TEXT: Record<CouponStatus, string> = {
+  available: "사용 가능",
+  used: "사용 완료",
+  expired: "기간 만료",
+};
 
 const NAV_ITEMS = [
   { href: "/villages", label: "마을 찾기" },
@@ -43,17 +54,85 @@ const MY_BOOKING_STATUS_TEXT: Record<BookingStatus, string> = {
   pending: "승인 대기",
   approved: "예약 확정",
   rejected: "거절됨",
+  cancelled: "취소됨",
 };
 
 export default function MyPage() {
   const { subscribedVillageIds, lastVisitedVillageId, user, accessToken } = useAppStore();
-  const [showCoupons, setShowCoupons] = useState(false);
+  const [showCoupons, setShowCoupons] = useState(true);
+  const [coupons, setCoupons] = useState<Coupon[] | null>(null);
+  const [couponsError, setCouponsError] = useState<string | null>(null);
   const [villageApplication, setVillageApplication] = useState<VillageApplication | null>(null);
 
   const [hostBookings, setHostBookings] = useState<HostBooking[] | null>(null);
   const [bookingsError, setBookingsError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!accessToken) return;
+    fetchMyCoupons(accessToken)
+      .then(setCoupons)
+      .catch((err) => setCouponsError(extractErrorMessage(err, "쿠폰을 불러오지 못했어요.")));
+  }, [accessToken]);
+
+  const availableCouponCount = coupons?.filter((c) => c.status === "available").length ?? 0;
+
   const [myBookings, setMyBookings] = useState<MyBooking[] | null>(null);
   const [myBookingsError, setMyBookingsError] = useState<string | null>(null);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
+
+  // 리뷰 쓰기 창에 띄울 예약 항목
+  const [reviewTarget, setReviewTarget] = useState<{ bookingId: number; item: MyBookingItem } | null>(null);
+
+  const handleReviewSubmit = async (rating: number, comment: string) => {
+    if (!accessToken || !reviewTarget) return;
+    const { bookingId, item } = reviewTarget;
+    // 이미 쓴 리뷰가 있으면 수정, 없으면 새로 등록
+    const review = item.review
+      ? await updateReview(accessToken, item.review.id, { rating, comment })
+      : await createReview(accessToken, { booking_item_id: item.id, rating, comment });
+    setMyBookings(
+      (list) =>
+        list?.map((b) =>
+          b.id === bookingId
+            ? { ...b, items: b.items.map((i) => (i.id === item.id ? { ...i, can_review: false, review } : i)) }
+            : b,
+        ) ?? null,
+    );
+    setReviewTarget(null);
+  };
+
+  const handleReviewDelete = async (item: MyBookingItem) => {
+    if (!accessToken || !item.review) return;
+    if (!window.confirm("리뷰를 삭제할까요?")) return;
+    setCancelError(null);
+    try {
+      await deleteReview(accessToken, item.review.id);
+      // 삭제하면 다시 리뷰를 쓸 수 있으므로 서버 기준으로 목록을 새로 받는다.
+      setMyBookings(await fetchMyBookings(accessToken));
+    } catch (err) {
+      setCancelError(extractErrorMessage(err, "리뷰를 삭제하지 못했어요."));
+    }
+  };
+
+  const handleCancel = async (b: MyBooking) => {
+    if (!accessToken) return;
+    const hasLodging = b.items.some((i) => i.type === "lodging");
+    const message = hasLodging
+      ? "예약을 취소할까요?\n취소하면 체크아웃일에 발급되는 숙박 쿠폰도 받을 수 없어요."
+      : "예약을 취소할까요?";
+    if (!window.confirm(message)) return;
+    setCancelError(null);
+    setCancellingId(b.id);
+    try {
+      const updated = await cancelMyBooking(accessToken, b.id);
+      setMyBookings((list) => list?.map((x) => (x.id === updated.id ? updated : x)) ?? null);
+      fetchMyCoupons(accessToken).then(setCoupons).catch(() => {});
+    } catch (err) {
+      setCancelError(extractErrorMessage(err, "예약을 취소하지 못했어요."));
+    } finally {
+      setCancellingId(null);
+    }
+  };
 
   useEffect(() => {
     if (!accessToken) return;
@@ -153,14 +232,16 @@ export default function MyPage() {
                                   {item.type === "experience" ? "체험" : "숙박"}
                                 </span>
                                 {item.title}
+                                {itemQuantityLabel(item)}
                               </span>
                               <span>{item.subtotal.toLocaleString()}원</span>
                             </li>
                           ))}
                         </ul>
                         <p className="text-xs text-ink-faint">
-                          방문 {formatVisitDate(b.start_date)} · 신청 {formatRequestedDate(b.requested_at)} · 합계{" "}
+                          {stayLabel(b)} · 신청 {formatRequestedDate(b.requested_at)} · 합계{" "}
                           {b.total_price.toLocaleString()}원
+                          {b.discount_amount > 0 && ` (쿠폰 -${b.discount_amount.toLocaleString()}원)`}
                         </p>
                       </Card>
                     ))}
@@ -172,6 +253,9 @@ export default function MyPage() {
             {accessToken && (
               <div>
                 <p className="mb-2 text-sm font-semibold text-ink-soft">내 예약</p>
+                {cancelError && (
+                  <p className="mb-2 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{cancelError}</p>
+                )}
                 {myBookingsError ? (
                   <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{myBookingsError}</p>
                 ) : myBookings === null ? (
@@ -183,33 +267,80 @@ export default function MyPage() {
                 ) : (
                   <div className="space-y-2">
                     {myBookings.map((b) => (
-                      <Card key={b.id} className={`space-y-1.5 ${b.status === "rejected" ? "opacity-60" : ""}`}>
+                      <Card key={b.id} className={`space-y-1.5 ${b.status === "rejected" || b.status === "cancelled" ? "opacity-60" : ""}`}>
                         <div className="flex items-start justify-between gap-2">
                           <p className="text-sm font-semibold">{b.village_name ?? "마을"}</p>
                           <Badge tone={b.status === "approved" ? "leaf" : "neutral"}>
                             {MY_BOOKING_STATUS_TEXT[b.status]}
                           </Badge>
                         </div>
-                        <ul className="space-y-0.5 text-sm text-ink-soft">
-                          {b.items.map((item, i) => (
-                            <li key={i} className="flex justify-between gap-2">
-                              <span>
-                                <span className="mr-1.5 text-xs text-ink-faint">
-                                  {item.type === "experience" ? "체험" : "숙박"}
+                        <ul className="space-y-1.5 text-sm text-ink-soft">
+                          {b.items.map((item) => (
+                            <li key={item.id}>
+                              <div className="flex justify-between gap-2">
+                                <span>
+                                  <span className="mr-1.5 text-xs text-ink-faint">
+                                    {item.type === "experience" ? "체험" : "숙박"}
+                                  </span>
+                                  {item.title}
+                                  {itemQuantityLabel(item)}
                                 </span>
-                                {item.title}
-                              </span>
-                              <span>{item.subtotal.toLocaleString()}원</span>
+                                <span>{item.subtotal.toLocaleString()}원</span>
+                              </div>
+                              {item.can_review && (
+                                <button
+                                  onClick={() => setReviewTarget({ bookingId: b.id, item })}
+                                  className="mt-1 rounded-lg border border-clay-300 bg-clay-50 px-3 py-1.5 text-xs font-semibold text-clay-700"
+                                >
+                                  {item.type === "experience" ? "체험 리뷰쓰기" : "숙박 리뷰쓰기"}
+                                </button>
+                              )}
+                              {item.review && (
+                                <div className="mt-0.5 flex items-center gap-1.5 text-xs text-ink-faint">
+                                  <Stars rating={item.review.rating} />
+                                  <span className="min-w-0 flex-1 truncate">{item.review.comment}</span>
+                                  <button
+                                    onClick={() => setReviewTarget({ bookingId: b.id, item })}
+                                    className="shrink-0 underline"
+                                  >
+                                    수정
+                                  </button>
+                                  <button
+                                    onClick={() => handleReviewDelete(item)}
+                                    className="shrink-0 underline"
+                                  >
+                                    삭제
+                                  </button>
+                                </div>
+                              )}
                             </li>
                           ))}
                         </ul>
                         <p className="text-xs text-ink-faint">
-                          방문 {formatVisitDate(b.start_date)} · {b.headcount}인 · 합계{" "}
+                          {stayLabel(b)} · {b.headcount}인 · 합계{" "}
                           {b.total_price.toLocaleString()}원
+                          {b.discount_amount > 0 && ` (쿠폰 -${b.discount_amount.toLocaleString()}원)`}
                           {b.status === "approved" && " · 마을에서 예약을 확정했어요"}
                           {b.status === "pending" && " · 마을의 승인을 기다리고 있어요"}
                           {b.status === "rejected" && " · 마을에서 예약을 받을 수 없대요"}
+                          {b.status === "cancelled" && " · 예약을 취소했어요"}
                         </p>
+                        {(b.status === "pending" || b.status === "approved") &&
+                          b.items.some((i) => i.type === "lodging") && (
+                            <p className="text-xs text-clay-600">
+                              체크아웃일({formatMonthDay(lodgingCheckout(b))})에 숙박 20% 할인 쿠폰이 발급돼요(예약일로부터
+                              1년간 유효) · 그 전에 취소하면 발급되지 않아요
+                            </p>
+                          )}
+                        {(b.status === "pending" || b.status === "approved") && todayIso() < b.start_date && (
+                          <button
+                            disabled={cancellingId === b.id}
+                            onClick={() => handleCancel(b)}
+                            className="text-xs text-ink-faint underline disabled:opacity-50"
+                          >
+                            예약 취소
+                          </button>
+                        )}
                       </Card>
                     ))}
                   </div>
@@ -260,17 +391,45 @@ export default function MyPage() {
               onClick={() => setShowCoupons((v) => !v)}
               className="flex w-full items-center justify-between rounded-xl border border-line bg-white px-4 py-3.5 text-sm font-semibold"
             >
-              재방문 할인 쿠폰함
-              <span className="text-ink-soft">{COUPONS.length}장 {showCoupons ? "▲" : "›"}</span>
+              쿠폰함
+              <span className="text-ink-soft">
+                {accessToken ? `사용 가능 ${availableCouponCount}장` : "로그인 필요"} {showCoupons ? "▲" : "›"}
+              </span>
             </button>
             {showCoupons && (
               <div className="space-y-2">
-                {COUPONS.map((c) => (
-                  <Card key={c.id} className="flex items-center justify-between">
-                    <span className="text-sm font-medium">{c.title}</span>
-                    <span className="text-xs text-ink-faint">{c.expires}</span>
+                {!accessToken ? (
+                  <Card className="py-5 text-center text-sm text-ink-faint">
+                    로그인하면 가입 쿠폰을 받을 수 있어요.
                   </Card>
-                ))}
+                ) : couponsError ? (
+                  <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{couponsError}</p>
+                ) : coupons === null ? (
+                  <p className="text-sm text-ink-faint">불러오는 중...</p>
+                ) : coupons.length === 0 ? (
+                  <Card className="py-5 text-center text-sm text-ink-faint">
+                    사용할 수 있는 쿠폰이 없어요.
+                  </Card>
+                ) : (
+                  coupons.map((c) => (
+                    <Card key={c.id} className={`space-y-1 ${c.status === "available" ? "" : "opacity-60"}`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-sm font-semibold">{c.title}</span>
+                        <Badge tone={c.status === "available" ? "leaf" : "neutral"}>
+                          {COUPON_STATUS_TEXT[c.status]}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-ink-soft">
+                        {c.applies_to === "lodging" ? "숙박 예약 시" : "숙박·체험 예약 시"} {c.discount_percent}% 할인
+                      </p>
+                      <p className="text-xs text-ink-faint">
+                        {c.status === "used" && c.used_at
+                          ? `${formatKstDate(c.used_at)} 사용`
+                          : `${formatKstDate(c.expires_at)}까지`}
+                      </p>
+                    </Card>
+                  ))
+                )}
               </div>
             )}
 
@@ -287,6 +446,14 @@ export default function MyPage() {
         </div>
         <BottomNav />
       </Shell>
+      {reviewTarget && (
+        <ReviewFormModal
+          title={`${reviewTarget.item.type === "experience" ? "체험" : "숙박"} 리뷰 · ${reviewTarget.item.title}`}
+          initial={reviewTarget.item.review ?? undefined}
+          onClose={() => setReviewTarget(null)}
+          onSubmit={handleReviewSubmit}
+        />
+      )}
     </>
   );
 }

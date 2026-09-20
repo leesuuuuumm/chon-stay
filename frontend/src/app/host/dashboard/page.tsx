@@ -12,6 +12,7 @@ import {
   bookingTitle,
   formatRequestedDate,
   formatVisitDate,
+  stayLabel,
   todayIso,
   useHostBookings,
 } from "@/lib/hostBookings";
@@ -114,7 +115,7 @@ export default function HostDashboardPage() {
                               {b.applicant_name} · {b.headcount}인 · {bookingTitle(b)}
                             </p>
                             <p className="text-xs text-ink-faint">
-                              방문 {formatVisitDate(b.start_date)} · 신청 {formatRequestedDate(b.requested_at)} ·{" "}
+                              {stayLabel(b)} · 신청 {formatRequestedDate(b.requested_at)} ·{" "}
                               {b.total_price.toLocaleString()}원
                             </p>
                           </div>

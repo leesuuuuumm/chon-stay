@@ -357,6 +357,7 @@ export type VillageRecommendation = {
   explanation: string;
   matching_score: number;
   alert: boolean;
+  image_path?: string | null;
 };
 
 export type OnboardingResponse = {
@@ -384,6 +385,7 @@ export type VillageExperience = {
   end_date: string;
   price: number;
   capacity: number;
+  images: ListingImage[];
 };
 
 export type VillageLodging = {
@@ -392,6 +394,7 @@ export type VillageLodging = {
   unit: string;
   price: number;
   capacity: number;
+  images: ListingImage[];
 };
 
 export type VillageDetail = {
@@ -409,24 +412,60 @@ export type BookingItemPayload = {
   subtotal: number;
   experience_id?: number;
   lodging_id?: number;
+  check_in?: string;
+  check_out?: string;
 };
 
 export type BookingPayload = {
   village_id: number;
   headcount: number;
-  visit_date: string;
+  visit_date?: string;
   total_price: number;
   items: BookingItemPayload[];
+  coupon_id?: number;
 };
 
 export async function createBooking(token: string, payload: BookingPayload) {
-  const { data } = await api.post('/api/bookings/', payload, {
+  const { data } = await api.post<{
+    booking_id: number;
+    status: BookingStatus;
+    total_price: number;
+    discount_amount: number;
+  }>('/api/bookings/', payload, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return data;
 }
 
-export type BookingStatus = 'pending' | 'approved' | 'rejected';
+export type CouponStatus = 'available' | 'used' | 'expired';
+
+export type Coupon = {
+  id: number;
+  code: string;
+  title: string;
+  discount_percent: number;
+  applies_to: 'all' | 'lodging';
+  status: CouponStatus;
+  issued_at: string;
+  expires_at: string;
+  used_at: string | null;
+};
+
+export async function fetchMyCoupons(token: string) {
+  const { data } = await api.get<Coupon[]>('/api/coupons/mine', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return data;
+}
+
+export async function getLodgingUnavailableDates(lodgingId: number) {
+  const { data } = await api.get<{ dates: string[] }>(
+    `/api/listings/lodgings/${lodgingId}/unavailable-dates`,
+  );
+  return data.dates;
+}
+
+export type BookingStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
 
 export type HostBookingItem = {
   type: 'experience' | 'lodging';
@@ -434,6 +473,8 @@ export type HostBookingItem = {
   quantity: number;
   unit_price: number;
   subtotal: number;
+  start_date?: string | null;
+  end_date?: string | null;
 };
 
 export type HostBooking = {
@@ -446,7 +487,23 @@ export type HostBooking = {
   requested_at: string;
   decided_at: string | null;
   applicant_name: string;
+  discount_amount: number;
   items: HostBookingItem[];
+};
+
+export const REVIEW_MAX_LENGTH = 200;
+
+export type MyReview = {
+  id: number;
+  rating: number;
+  comment: string;
+  created_date: string;
+};
+
+export type MyBookingItem = HostBookingItem & {
+  id: number;
+  can_review: boolean;
+  review: MyReview | null;
 };
 
 export type MyBooking = {
@@ -460,12 +517,77 @@ export type MyBooking = {
   decided_at: string | null;
   village_id: number;
   village_name: string | null;
-  items: HostBookingItem[];
+  discount_amount: number;
+  items: MyBookingItem[];
 };
 
 export async function fetchMyBookings(token: string) {
   const { data } = await api.get<MyBooking[]>('/api/bookings/mine', {
     headers: { Authorization: `Bearer ${token}` },
+  });
+  return data;
+}
+
+export async function cancelMyBooking(token: string, bookingId: number) {
+  const { data } = await api.post<MyBooking>(
+    `/api/bookings/${bookingId}/cancel`,
+    null,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  return data;
+}
+
+export async function createReview(
+  token: string,
+  payload: { booking_item_id: number; rating: number; comment: string },
+) {
+  const { data } = await api.post<MyReview>('/api/reviews/', payload, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return data;
+}
+
+export async function updateReview(
+  token: string,
+  reviewId: number,
+  payload: { rating: number; comment: string },
+) {
+  const { data } = await api.patch<MyReview>(
+    `/api/reviews/${reviewId}`,
+    payload,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  return data;
+}
+
+export async function deleteReview(token: string, reviewId: number) {
+  await api.delete(`/api/reviews/${reviewId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export type Review = {
+  id: number;
+  author: string;
+  rating: number;
+  comment: string;
+  created_date: string;
+};
+
+export type ReviewList = {
+  count: number;
+  average_rating: number | null;
+  reviews: Review[];
+};
+
+export async function fetchReviews(
+  target: { experienceId: number } | { lodgingId: number },
+) {
+  const { data } = await api.get<ReviewList>('/api/reviews/', {
+    params:
+      'experienceId' in target
+        ? { experience_id: target.experienceId }
+        : { lodging_id: target.lodgingId },
   });
   return data;
 }

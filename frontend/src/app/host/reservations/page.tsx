@@ -9,7 +9,8 @@ import { decideHostBooking, extractErrorMessage, type HostBooking } from "@/lib/
 import {
   STATUS_LABEL,
   formatRequestedDate,
-  formatVisitDate,
+  itemQuantityLabel,
+  stayLabel,
   useHostBookings,
 } from "@/lib/hostBookings";
 
@@ -36,7 +37,7 @@ export default function HostReservationsPage() {
   };
 
   const renderCard = (booking: HostBooking) => (
-    <Card key={booking.id} className={booking.status === "rejected" ? "opacity-60" : ""}>
+    <Card key={booking.id} className={booking.status === "rejected" || booking.status === "cancelled" ? "opacity-60" : ""}>
       <div className="flex items-start justify-between gap-2">
         <p className="font-semibold">
           {booking.applicant_name} · {booking.headcount}인
@@ -45,7 +46,7 @@ export default function HostReservationsPage() {
           {STATUS_LABEL[booking.status]}
         </Badge>
       </div>
-      <p className="mt-1 text-sm text-ink-soft">방문일 {formatVisitDate(booking.start_date)}</p>
+      <p className="mt-1 text-sm text-ink-soft">{stayLabel(booking)}</p>
       <ul className="mt-2 space-y-1 text-sm">
         {booking.items.map((item, i) => (
           <li key={i} className="flex items-center justify-between gap-2">
@@ -54,12 +55,18 @@ export default function HostReservationsPage() {
                 {item.type === "experience" ? "체험" : "숙박"}
               </span>
               {item.title}
-              {item.quantity > 1 ? ` × ${item.quantity}` : ""}
+              {itemQuantityLabel(item)}
             </span>
             <span className="text-ink-soft">{item.subtotal.toLocaleString()}원</span>
           </li>
         ))}
       </ul>
+      {booking.discount_amount > 0 && (
+        <p className="mt-2 flex items-center justify-between text-sm text-clay-600">
+          <span>쿠폰 할인</span>
+          <span>-{booking.discount_amount.toLocaleString()}원</span>
+        </p>
+      )}
       <p className="mt-2 flex items-center justify-between border-t border-line pt-2 text-sm font-semibold">
         <span>합계</span>
         <span>{booking.total_price.toLocaleString()}원</span>

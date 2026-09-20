@@ -89,6 +89,7 @@ def recommend_villages(
                 matching_score=score,
                 alert=alert,
                 decline_score=int(decline_score),
+                image_path=village.image_path,
             )
         )
 

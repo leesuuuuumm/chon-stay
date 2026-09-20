@@ -27,3 +27,5 @@ class BookingItem(Base):
     experience_id = Column(Integer, ForeignKey("experiences.id"), nullable=True)
     lodging_id = Column(Integer, ForeignKey("lodgings.id"), nullable=True)
     booking_id = Column(Integer, ForeignKey("booking.id"), nullable=False)
+    start_date = Column(Date, nullable=True)  # 체험: 방문일, 숙박: 체크인
+    end_date = Column(Date, nullable=True)  # 체험: 방문일, 숙박: 체크아웃

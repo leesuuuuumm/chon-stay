@@ -4,6 +4,10 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.deps import get_current_approved_village
 from app.core.uploads import save_photo
+from datetime import timedelta
+
+from app.core.coupons import today_kst
+from app.models.booking import Booking, BookingItem
 from app.models.listing import Experience, ExperienceImage, Lodging, LodgingImage
 from app.models.village import Village
 from app.schemas.listing import (
@@ -122,6 +126,30 @@ def upload_lodging_images(
     for image in images:
         db.refresh(image)
     return images
+
+
+@router.get("/lodgings/{lodging_id}/unavailable-dates")
+def get_lodging_unavailable_dates(lodging_id: int, db: Session = Depends(get_db)):
+    """이미 예약된(대기/승인) 숙박의 '밤' 날짜 목록. 체크아웃 날짜는 비워지는 날이라 포함하지 않는다."""
+    today = today_kst()
+    rows = (
+        db.query(BookingItem.start_date, BookingItem.end_date)
+        .join(Booking, Booking.id == BookingItem.booking_id)
+        .filter(
+            BookingItem.lodging_id == lodging_id,
+            Booking.status.in_(("pending", "approved")),
+            BookingItem.start_date.isnot(None),
+            BookingItem.end_date > today,
+        )
+        .all()
+    )
+    nights = set()
+    for start, end in rows:
+        day = start
+        while day < end:
+            nights.add(day)
+            day += timedelta(days = 1)
+    return {"dates": sorted(d.isoformat() for d in nights)}
 
 
 @router.get("/mine", response_model = MyListingsResponse)

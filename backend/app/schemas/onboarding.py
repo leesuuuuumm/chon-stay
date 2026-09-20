@@ -39,7 +39,7 @@ class VillageRecommendation(BaseModel):
     matching_score: int
     alert: bool
     decline_score: int
-
+    image_path: str | None = None
 class OnboardingResponse(BaseModel):
     onboarding_id: int
     recommendations: List[VillageRecommendation]
