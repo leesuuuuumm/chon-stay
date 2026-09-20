@@ -152,3 +152,5 @@ def reject_village(village_id: int, db: Session = Depends(get_db), admin: User =
 def get_population_index(village_id: int):
     # TODO: 생활인구 감소 심각도 지표 계산/시각화용 데이터
     return {"village_id": village_id, "index": None}
+
+

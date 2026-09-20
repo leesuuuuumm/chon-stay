@@ -373,3 +373,57 @@ export async function getOnboardingRecommendations(
   );
   return data;
 }
+
+export type VillageExperience = {
+  id: number;
+  title: string;
+  season: string | null;
+  price: number;
+  capacity: number;
+};
+
+export type VillageLodging = {
+  id: number;
+  title: string;
+  unit: string;
+  price: number;
+  capacity: number;
+};
+
+export type VillageDetail = {
+  id: number;
+  name: string;
+  description: string | null;
+  experiences: VillageExperience[];
+  lodgings: VillageLodging[];
+};
+
+export type BookingItemPayload = {
+  quantity: number;
+  unit_price: number;
+  subtotal: number;
+  experience_id?: number;
+  lodging_id?: number;
+};
+
+export type BookingPayload = {
+  village_id: number;
+  headcount: number;
+  visit_date: string;
+  total_price: number;
+  items: BookingItemPayload[];
+};
+
+export async function createBooking(token: string, payload: BookingPayload) {
+  const { data } = await api.post('/api/bookings/', payload, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return data;
+}
+
+export async function getVillageDetail(villageId: number) {
+  const { data } = await api.get<VillageDetail>(
+    `/api/villages/${villageId}/detail`,
+  );
+  return data;
+}

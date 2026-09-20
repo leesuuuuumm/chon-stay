@@ -23,6 +23,7 @@ type AppState = {
   accessToken: string | null;
   user: AuthUser | null;
   recommendations: VillageRecommendation[];
+  visitDate: string | null;
 };
 
 type AppContextValue = AppState & {
@@ -38,6 +39,7 @@ type AppContextValue = AppState & {
   logout: () => void;
   setRecommendations: (recommendations: VillageRecommendation[]) => void;
   resetOnboarding: () => void;
+  setVisitDate: (date: string) => void;
 };
 
 const STORAGE_KEY = 'chonstay:v1';
@@ -51,6 +53,7 @@ const defaultState: AppState = {
   accessToken: null,
   user: null,
   recommendations: [],
+  visitDate: null,
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -117,6 +120,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setState((s) => ({ ...s, recommendations })),
       resetOnboarding: () =>
         setState((s) => ({ ...s, interests: [], duration: null })),
+      setVisitDate: (date) => setState((s) => ({ ...s, visitDate: date })),
     }),
     [state, hydrated],
   );

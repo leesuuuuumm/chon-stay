@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.routers import users, villages, houses, matching, listings, onboarding
+from app.routers import users, villages, houses, matching, listings, onboarding, village_detail, booking
 from app.core.config import settings
 from app.core.database import Base, engine
 from app.models import user, village, listing
@@ -36,7 +36,8 @@ app.include_router(houses.router, prefix="/api/houses", tags=["houses"])
 app.include_router(listings.router, prefix="/api/listings", tags=["listings"])
 app.include_router(matching.router, prefix="/api/matching", tags=["matching"])
 app.include_router(onboarding.router, prefix="/api/onboarding", tags=["onboarding"])
-
+app.include_router(village_detail.router, prefix="/api/villages",tags=["village_detail"])
+app.include_router(booking.router, prefix="/api/bookings", tags=["booking"])
 @app.get("/")
 def root():
     return {"service": "촌스테이", "status": "ok"}
