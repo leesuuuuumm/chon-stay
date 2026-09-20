@@ -1,20 +1,20 @@
-"use client";
+'use client';
 
-import { Suspense, useState } from "react";
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import Shell from "@/components/Shell";
-import AppHeader from "@/components/AppHeader";
-import Button from "@/components/ui/Button";
-import { login, fetchMe, extractErrorMessage } from "@/lib/api";
-import { useAppStore } from "@/lib/store";
+import { Suspense, useState } from 'react';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Shell from '@/components/Shell';
+import AppHeader from '@/components/AppHeader';
+import Button from '@/components/ui/Button';
+import { login, fetchMe, extractErrorMessage } from '@/lib/api';
+import { useAppStore } from '@/lib/store';
 
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setAuth } = useAppStore();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -26,9 +26,15 @@ function LoginContent() {
       const { access_token } = await login({ email, password });
       const user = await fetchMe(access_token);
       setAuth(access_token, user);
-      router.push(searchParams.get("redirect") || "/mypage");
+      if (user.is_admin) {
+        router.push('/admin');
+      } else {
+        router.push(searchParams.get('redirect') || '/onboarding');
+      }
     } catch (err) {
-      setError(extractErrorMessage(err, "로그인에 실패했어요. 다시 시도해주세요."));
+      setError(
+        extractErrorMessage(err, '로그인에 실패했어요. 다시 시도해주세요.'),
+      );
     } finally {
       setLoading(false);
     }
@@ -66,13 +72,20 @@ function LoginContent() {
           />
           {error && <p className="text-sm text-red-600">{error}</p>}
           <Button type="submit" disabled={loading}>
-            {loading ? "로그인 중..." : "로그인"}
+            {loading ? '로그인 중...' : '로그인'}
           </Button>
         </form>
 
         <p className="mt-6 text-center text-sm text-ink-faint">
-          아직 계정이 없으신가요?{" "}
-          <Link href="/signup" className="font-semibold text-ink underline underline-offset-2">
+          아직 계정이 없으신가요?{' '}
+          <Link
+            href={
+              searchParams.get('redirect')
+                ? `/signup?redirect=${encodeURIComponent(searchParams.get('redirect')!)}`
+                : '/signup'
+            }
+            className="font-semibold text-ink underline underline-offset-2"
+          >
             회원가입
           </Link>
         </p>

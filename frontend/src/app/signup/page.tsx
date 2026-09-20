@@ -1,16 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Shell from '@/components/Shell';
 import AppHeader from '@/components/AppHeader';
 import Button from '@/components/ui/Button';
 import { signup, login, fetchMe, extractErrorMessage } from '@/lib/api';
 import { useAppStore } from '@/lib/store';
 
-export default function SignupPage() {
+function SignupContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { setAuth } = useAppStore();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -31,8 +32,8 @@ export default function SignupPage() {
       await signup({ email, password, username });
       const { access_token } = await login({ email, password });
       const user = await fetchMe(access_token);
-      setAuth(access_token, user); // 토큰 임시 저장
-      router.push('/onboarding');
+      setAuth(access_token, user);
+      router.push(searchParams.get('redirect') || '/onboarding');
     } catch (err) {
       setError(
         extractErrorMessage(err, '회원가입에 실패했어요. 다시 시도해주세요.'),
@@ -105,5 +106,13 @@ export default function SignupPage() {
         </p>
       </div>
     </Shell>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignupContent />
+    </Suspense>
   );
 }

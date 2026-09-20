@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.user import User
+from app.models.village import Village
 
 from app.models.experience import Experience
 from app.models.onboarding import Onboarding, OnboardingInterest, OnboardingList

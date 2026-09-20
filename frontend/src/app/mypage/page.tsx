@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Shell from "@/components/Shell";
 import AppHeader from "@/components/AppHeader";
@@ -10,6 +10,7 @@ import AuthNavStatus from "@/components/AuthNavStatus";
 import Card from "@/components/ui/Card";
 import { getVillage } from "@/lib/mockData";
 import { useAppStore } from "@/lib/store";
+import { fetchMyVillageApplication, type VillageApplication } from "@/lib/api";
 
 const COUPONS = [
   { id: "c1", title: "재방문 숙박 20% 할인", expires: "6/30까지" },
@@ -21,9 +22,21 @@ const NAV_ITEMS = [
   { href: "/mypage", label: "마이페이지" },
 ];
 
+const VILLAGE_STATUS_TEXT: Record<VillageApplication["status"], string> = {
+  pending: "대표자 서류를 검토중이에요 (1~2일 소요)",
+  approved: "대표자 인증이 승인됐어요",
+  rejected: "대표자 인증이 거절됐어요. 서류를 다시 확인해 재신청해주세요.",
+};
+
 export default function MyPage() {
-  const { subscribedVillageIds, lastVisitedVillageId, user } = useAppStore();
+  const { subscribedVillageIds, lastVisitedVillageId, user, accessToken } = useAppStore();
   const [showCoupons, setShowCoupons] = useState(false);
+  const [villageApplication, setVillageApplication] = useState<VillageApplication | null>(null);
+
+  useEffect(() => {
+    if (!accessToken) return;
+    fetchMyVillageApplication(accessToken).then(setVillageApplication).catch(() => {});
+  }, [accessToken]);
 
   const subscribed = subscribedVillageIds.map((id) => getVillage(id)).filter(Boolean);
   const lastVillage = lastVisitedVillageId ? getVillage(lastVisitedVillageId) : null;
@@ -43,6 +56,23 @@ export default function MyPage() {
                 </Link>
               </div>
             )}
+            {villageApplication && (
+              <Card className="space-y-2">
+                <p className="text-sm font-semibold">마을 대표자 신청 현황</p>
+                <p className="text-sm text-ink-soft">
+                  {villageApplication.representative_name}님 · {VILLAGE_STATUS_TEXT[villageApplication.status]}
+                </p>
+                {villageApplication.status === "approved" && (
+                  <Link
+                    href="/host/onboarding"
+                    className="inline-block text-sm font-semibold text-clay-600 underline underline-offset-2"
+                  >
+                    마을·체험·숙소 정보 수정하기
+                  </Link>
+                )}
+              </Card>
+            )}
+
             {lastVillage && (
               <div className="rounded-xl bg-clay-100 px-4 py-3 text-sm text-clay-700">
                 🌱 지난번 다녀오신 <b>{lastVillage.name}</b>, 수확체험이 시작됐어요
