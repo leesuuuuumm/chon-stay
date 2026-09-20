@@ -21,10 +21,10 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-sand">
       <div className="mx-auto max-w-3xl px-6 py-16">
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-between">
+          <h1 className="text-4xl font-extrabold leading-tight">숨, 표</h1>
           <AuthNavStatus />
         </div>
-        <h1 className="mt-4 text-4xl font-extrabold leading-tight">숨,표</h1>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           <Card className="flex flex-col gap-4">

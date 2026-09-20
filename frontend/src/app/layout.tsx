@@ -3,7 +3,7 @@ import "./globals.css";
 import { AppProvider } from "@/lib/store";
 
 export const metadata: Metadata = {
-  title: "촌스테이",
+  title: "숨, 표",
   description: "일회성 관광을 지속가능한 생활인구 유입으로 전환하는 체류형 여행 서비스",
 };
 

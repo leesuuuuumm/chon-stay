@@ -48,7 +48,7 @@ function SignupContent() {
       <AppHeader title="회원가입" />
       <div className="flex flex-1 flex-col px-5 py-6 md:my-6 md:flex-none md:rounded-2xl md:border md:border-line md:bg-white md:px-10 md:py-10 md:shadow-card">
         <h2 className="text-2xl font-bold leading-snug">
-          촌스테이가
+          숨, 표가
           <br />
           처음이신가요?
         </h2>

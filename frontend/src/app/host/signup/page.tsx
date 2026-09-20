@@ -69,7 +69,7 @@ export default function HostSignupPage() {
             로그인이 필요해요
           </h2>
           <p className="mt-3 text-sm text-ink-soft">
-            촌스테이 계정으로 로그인한 뒤, 마을 대표자 자격 인증 서류를 추가로 제출하는 방식이에요.
+            숨, 표 계정으로 로그인한 뒤, 마을 대표자 자격 인증 서류를 추가로 제출하는 방식이에요.
           </p>
           <div className="mt-8 space-y-2">
             <Link href="/login?redirect=/host/signup">
