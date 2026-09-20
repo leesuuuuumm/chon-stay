@@ -1,3 +1,4 @@
+from datetime import date
 from pydantic import BaseModel
 from typing import List
 
@@ -6,6 +7,8 @@ class ExperienceDetail(BaseModel):
     id: int
     title: str
     season: str | None = None
+    start_date: date
+    end_date: date
     price: int
     capacity: int
 

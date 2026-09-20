@@ -25,9 +25,20 @@ def create_experience(
     village: Village = Depends(get_current_approved_village),
 ):
     data = payload.model_dump(exclude = {"interests"})
-    interest_code = {code.value for code in payload.interests} or None
-    experience = Experience(village_id = village.id, interest_code = interest_code, **data)
-    db.add(experience)
+    interest_code = {code.value for code in payload.interests}
+
+    # 저장 도중 실패 후 재시도해도 같은 체험이 중복 등록되지 않도록, 동일한 항목이 있으면 그걸 돌려준다.
+    experience = (
+        db.query(Experience)
+        .filter(Experience.village_id == village.id, *[getattr(Experience, k) == v for k, v in data.items()])
+        .first()
+    )
+    if experience:
+        merged = set(experience.interest_code or set()) | interest_code
+        experience.interest_code = merged or None
+    else:
+        experience = Experience(village_id = village.id, interest_code = interest_code or None, **data)
+        db.add(experience)
     db.commit()
     db.refresh(experience)
     return experience
@@ -69,10 +80,17 @@ def create_lodging(
     db: Session = Depends(get_db),
     village: Village = Depends(get_current_approved_village),
 ):
-    lodging = Lodging(village_id = village.id, **payload.model_dump())
-    db.add(lodging)
-    db.commit()
-    db.refresh(lodging)
+    data = payload.model_dump()
+    lodging = (
+        db.query(Lodging)
+        .filter(Lodging.village_id == village.id, *[getattr(Lodging, k) == v for k, v in data.items()])
+        .first()
+    )
+    if not lodging:
+        lodging = Lodging(village_id = village.id, **data)
+        db.add(lodging)
+        db.commit()
+        db.refresh(lodging)
     return lodging
 
 
