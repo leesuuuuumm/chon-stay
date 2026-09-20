@@ -38,6 +38,7 @@ class VillageRecommendation(BaseModel):
     explanation: str
     matching_score: int
     alert: bool
+    decline_score: int
 
 class OnboardingResponse(BaseModel):
     onboarding_id: int

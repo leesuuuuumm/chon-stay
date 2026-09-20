@@ -17,6 +17,8 @@ class Village(Base):
     name = Column(String(200), nullable = True)  # 마을 이름 (승인 후 온보딩에서 입력)
     description = Column(Text, nullable = True)  # 마을 소개
     image_path = Column(String(500), nullable = True)  # 마을 대표 사진 (공개 서빙 경로)
+    area_cd = Column(String(2), nullable = True)
+    signgu_cd = Column(String(5), nullable=True)
     created_date = Column(DateTime, server_default = func.now())
 
     user = relationship("User")

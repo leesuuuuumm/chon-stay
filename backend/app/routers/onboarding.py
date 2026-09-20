@@ -9,6 +9,7 @@ from app.models.village import Village
 from app.models.listing import Experience
 from app.models.onboarding import Onboarding, OnboardingInterest, OnboardingList
 from app.schemas.onboarding import OnboardingRequest, OnboardingResponse, VillageRecommendation
+from app.core.tourapi import get_decline_score
 
 
 router = APIRouter()
@@ -20,9 +21,8 @@ INTEREST_LABEL_MAP = {
     "NATURE": "자연체험",
 }
 
-# 매칭 계산 어떻게 할지 생각해보기!!!!!(매칭추천 알고리즘!!) -> 자카드 알고리즘
+
 def calculate_jaccard_score(user_interests: set, village_interests: set) -> int:
-    #자카드 유사도: 교집합 크기 / 합집합 크기
     if not village_interests:
         return 0
 
@@ -30,29 +30,28 @@ def calculate_jaccard_score(user_interests: set, village_interests: set) -> int:
     union = user_interests | village_interests
 
     if not union:
-        return 
+        return 0
 
-    similarity  = len(intersection) / len(union)
+    similarity = len(intersection) / len(union)
     return round(similarity * 100)
 
-@router.post("/recommend", response_model = OnboardingResponse)
+
+@router.post("/recommend", response_model=OnboardingResponse)
 def recommend_villages(
     req: OnboardingRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
 
-    onboarding = Onboarding(duration_of_stay = req.duration, account_id = current_user.id)
+    onboarding = Onboarding(duration_of_stay=req.duration, account_id=current_user.id)
     db.add(onboarding)
     db.commit()
     db.refresh(onboarding)
 
     for interest in req.interests:
-        db.add(OnboardingInterest(interest_code = interest, onboarding_id = onboarding.id))
+        db.add(OnboardingInterest(interest_code=interest, onboarding_id=onboarding.id))
     db.commit()
 
-
-    # 마을변 자카드 유사도 계산
     user_interests = set(req.interests)
     villages = db.query(Village).filter(
         Village.status == "approved",
@@ -65,18 +64,20 @@ def recommend_villages(
         village_interests = {code.value for e in village_experiences for code in e.interest_codes}
         matched = user_interests & village_interests
         if not matched:
-            continue # 하나도 안 겹치면 추천 목록에서 제외
+            continue
 
         score = calculate_jaccard_score(user_interests, village_interests)
         matched_label = INTEREST_LABEL_MAP.get(list(matched)[0], list(matched)[0])
         explanation = f"{matched_label} 원하시는군요"
+        decline_score = get_decline_score(village.area_cd, village.signgu_cd)
+        alert = decline_score >= 60
 
         onboarding_list = OnboardingList(
-            explanation = explanation,
-            matching_score = score,
-            alert = False,
-            onboarding_id = onboarding.id,
-            village_id = village.id,
+            explanation=explanation,
+            matching_score=score,
+            alert=alert,
+            onboarding_id=onboarding.id,
+            village_id=village.id,
         )
         db.add(onboarding_list)
 
@@ -86,15 +87,12 @@ def recommend_villages(
                 village_name=village.name,
                 explanation=explanation,
                 matching_score=score,
-                alert=False,
+                alert=alert,
+                decline_score=int(decline_score),
             )
         )
 
     db.commit()
-    recommendations.sort(key=lambda x: x.matching_score, reverse=True)
+    recommendations.sort(key=lambda x: (-x.decline_score, -x.matching_score))
 
-    return OnboardingResponse(onboarding_id=onboarding.id, recommendations=recommendations[:10])    
-
-    
-
-
+    return OnboardingResponse(onboarding_id=onboarding.id, recommendations=recommendations[:10])
