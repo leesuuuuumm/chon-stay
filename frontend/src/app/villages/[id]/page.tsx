@@ -1,7 +1,7 @@
 'use client';
 
 import { notFound, useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useState, useEffect } from 'react';
+import { Suspense, useState, useEffect, useRef } from 'react';
 import Shell from '@/components/Shell';
 import AppHeader from '@/components/AppHeader';
 import PhotoPlaceholder from '@/components/PhotoPlaceholder';
@@ -17,11 +17,26 @@ import { useAppStore } from '@/lib/store';
 
 type Tab = '체험' | '숙박';
 
+function formatShortDate(iso: string) {
+  const [, month, day] = iso.split('-');
+  return `${Number(month)}/${Number(day)}`;
+}
+
 function VillageDetailContent({ params }: { params: { id: string } }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { cart, addToCart, removeFromCart, duration, visitDate, setVisitDate } =
-    useAppStore();
+  const {
+    cart,
+    addToCart,
+    removeFromCart,
+    duration,
+    visitDate,
+    setVisitDate,
+    hydrated,
+  } = useAppStore();
+  const cartRef = useRef(cart);
+  cartRef.current = cart;
+  const [notice, setNotice] = useState<string | null>(null);
 
   const [headcounts, setHeadcounts] = useState<Record<string, number>>({});
   const TABS: Tab[] = duration === '당일' ? ['체험'] : ['체험', '숙박'];
@@ -47,6 +62,31 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
       )
       .finally(() => setLoading(false));
   }, [params.id]);
+
+  const isOperating = (exp: { start_date: string; end_date: string }) =>
+    !visitDate || (exp.start_date <= visitDate && visitDate <= exp.end_date);
+
+  // 방문 날짜를 바꾸면, 그 날짜에 운영하지 않는 체험은 장바구니에서 뺀다.
+  useEffect(() => {
+    if (!hydrated || !village || !visitDate) return;
+    const operatingIds = new Set(
+      village.experiences
+        .filter((e) => e.start_date <= visitDate && visitDate <= e.end_date)
+        .map((e) => String(e.id)),
+    );
+    const stale = cartRef.current.filter(
+      (c) =>
+        c.villageId === String(village.id) &&
+        c.type === 'experience' &&
+        !operatingIds.has(c.id),
+    );
+    if (stale.length === 0) return;
+    stale.forEach((c) => removeFromCart(c.id));
+    setNotice(
+      `선택한 날짜에 운영하지 않는 체험 ${stale.length}개를 장바구니에서 뺐어요.`,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [village, visitDate, hydrated]);
 
   if (loading) {
     return (
@@ -129,9 +169,17 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
                 type="date"
                 value={visitDate || ''}
                 min={new Date().toISOString().split('T')[0]}
-                onChange={(e) => setVisitDate(e.target.value)}
+                onChange={(e) => {
+                  setNotice(null);
+                  setVisitDate(e.target.value);
+                }}
                 className="w-full rounded-xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-ink md:w-64"
               />
+              {notice && (
+                <p className="mt-2 rounded-lg bg-clay-100 px-3 py-2 text-xs text-clay-700">
+                  {notice}
+                </p>
+              )}
             </div>
           </div>
 
@@ -160,8 +208,12 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
                     const itemId = String(exp.id);
                     const inCart = cart.some((c) => c.id === itemId);
                     const hc = getHeadcount(itemId);
+                    const operating = isOperating(exp);
                     return (
-                      <Card key={exp.id} className="space-y-2">
+                      <Card
+                        key={exp.id}
+                        className={`space-y-2 ${operating ? '' : 'opacity-60'}`}
+                      >
                         <div className="flex items-center justify-between gap-3">
                           <div className="min-w-0 flex-1">
                             <p className="font-semibold">{exp.title}</p>
@@ -169,6 +221,11 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
                               {exp.season ? `${exp.season} · ` : ''}
                               {exp.price.toLocaleString()}원 · 정원{' '}
                               {exp.capacity}명
+                            </p>
+                            <p className="text-xs text-ink-faint">
+                              운영 {formatShortDate(exp.start_date)} ~{' '}
+                              {formatShortDate(exp.end_date)}
+                              {!operating && ' · 선택한 날짜에는 운영하지 않아요'}
                             </p>
                           </div>
                         </div>
@@ -195,7 +252,7 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
                             size="md"
                             fullWidth={false}
                             className="shrink-0 px-4"
-                            disabled={inCart || !visitDate}
+                            disabled={inCart || !visitDate || !operating}
                             onClick={() =>
                               addToCart({
                                 id: itemId,
@@ -212,7 +269,9 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
                               ? '담김'
                               : !visitDate
                                 ? '날짜 먼저 선택'
-                                : '담기'}
+                                : !operating
+                                  ? '운영 기간 아님'
+                                  : '담기'}
                           </Button>
                         </div>
                       </Card>
