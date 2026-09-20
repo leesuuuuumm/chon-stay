@@ -103,12 +103,6 @@ export default function OnboardingPage() {
           <Button onClick={handleRecommend} disabled={loading}>
             {loading ? '추천 찾는 중...' : '추천 받기'}
           </Button>
-          <button
-            onClick={() => router.push('/villages')}
-            className="text-sm text-ink-faint underline underline-offset-2"
-          >
-            로그인 없이 둘러보기
-          </button>
         </div>
       </div>
     </Shell>

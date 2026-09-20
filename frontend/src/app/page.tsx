@@ -1,10 +1,24 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Badge from '@/components/ui/Badge';
 import Card from '@/components/ui/Card';
 import PhotoPlaceholder from '@/components/PhotoPlaceholder';
 import AuthNavStatus from '@/components/AuthNavStatus';
+import { useAppStore } from '@/lib/store';
 
 export default function Home() {
+  const router = useRouter();
+  const { accessToken } = useAppStore();
+  const handleTravelerStart = () => {
+    if (accessToken) {
+      router.push('/onboarding');
+    } else {
+      router.push('/login?redirect=/onboarding');
+    }
+  };
+
   return (
     <main className="min-h-screen bg-sand">
       <div className="mx-auto max-w-3xl px-6 py-16">
@@ -32,12 +46,12 @@ export default function Home() {
                 관심사를 알려주시면 딱 맞는 마을과 체류 코스를 추천해드려요.
               </p>
             </div>
-            <Link
-              href="/login"
+            <button
+              onClick={handleTravelerStart}
               className="flex h-12 items-center justify-center rounded-xl bg-ink font-semibold text-white transition-colors hover:bg-ink/90"
             >
               여행자로 시작하기
-            </Link>
+            </button>
           </Card>
 
           <Card className="flex flex-col gap-4">

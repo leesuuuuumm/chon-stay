@@ -4,6 +4,26 @@ export const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
 });
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      try {
+        window.localStorage.removeItem('chonstay:v1');
+      } catch {
+        // ignore
+      }
+      if (
+        typeof window !== 'undefined' &&
+        window.location.pathname !== '/login'
+      ) {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  },
+);
+
 // 백엔드가 내려주는 image_path는 "/media/..." 형태의 상대 경로라 API 서버 주소를 붙여줘야 한다.
 export function resolveImageUrl(imagePath: string) {
   return `${api.defaults.baseURL}${imagePath}`;

@@ -89,12 +89,6 @@ function LoginContent() {
             회원가입
           </Link>
         </p>
-        <Link
-          href="/onboarding"
-          className="mt-2 text-center text-sm text-ink-faint underline underline-offset-2"
-        >
-          로그인 없이 둘러보기
-        </Link>
       </div>
     </Shell>
   );
