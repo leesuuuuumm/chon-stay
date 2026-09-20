@@ -1,4 +1,5 @@
-from sqlalchemy import Boolean, Column, Integer, String, ForeignKey, Date, DateTime, func, Enum
+from sqlalchemy import Boolean, Column, Integer, String, ForeignKey, Date, DateTime, func
+from sqlalchemy.dialects.mysql import SET
 from sqlalchemy.orm import relationship
 from app.models.enums import InterestCode
 from app.core.database import Base
@@ -14,12 +15,18 @@ class Experience(Base):
     end_date = Column(Date, nullable = False)
     price = Column(Integer, nullable = False)
     capacity = Column(Integer, nullable = False)
-    interest_code = Column(Enum(InterestCode), nullable = True)
+    # 여러 관심사를 한 컬럼에 저장 (예: 'FARMING,NATURE'). 값은 InterestCode와 동일해야 한다.
+    interest_code = Column(SET(*[c.value for c in InterestCode]), nullable = True)
     created_date = Column(DateTime, server_default = func.now())
 
     images = relationship(
         "ExperienceImage", cascade = "all, delete-orphan", order_by = "ExperienceImage.id"
     )
+
+    @property
+    def interest_codes(self) -> list[InterestCode]:
+        selected = self.interest_code or set()
+        return [c for c in InterestCode if c.value in selected]
 
 
 class Lodging(Base):

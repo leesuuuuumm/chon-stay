@@ -150,6 +150,15 @@ export type ListingImage = {
   is_cover: boolean;
 };
 
+export type InterestCode = 'FARMING' | 'CRAFT' | 'HEALING' | 'NATURE';
+
+export const INTEREST_OPTIONS: { code: InterestCode; label: string }[] = [
+  { code: 'FARMING', label: '농사체험' },
+  { code: 'CRAFT', label: '공방·수공예' },
+  { code: 'HEALING', label: '휴양·힐링' },
+  { code: 'NATURE', label: '자연체험' },
+];
+
 export type ExperienceListing = {
   id: number;
   village_id: number;
@@ -158,6 +167,7 @@ export type ExperienceListing = {
   end_date: string;
   price: number;
   capacity: number;
+  interests: InterestCode[];
   created_date: string;
   images: ListingImage[];
 };
@@ -181,6 +191,7 @@ export async function createExperience(
     endDate: string;
     price: number;
     capacity: number;
+    interests: InterestCode[];
   },
 ) {
   const { data } = await api.post<ExperienceListing>(
@@ -191,6 +202,7 @@ export async function createExperience(
       end_date: payload.endDate,
       price: payload.price,
       capacity: payload.capacity,
+      interests: payload.interests,
     },
     { headers: { Authorization: `Bearer ${token}` } },
   );

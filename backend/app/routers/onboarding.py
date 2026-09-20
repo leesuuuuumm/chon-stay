@@ -62,7 +62,7 @@ def recommend_villages(
 
     for village in villages:
         village_experiences = db.query(Experience).filter(Experience.village_id == village.id).all()
-        village_interests = {e.interest_code.value for e in village_experiences if e.interest_code}
+        village_interests = {code.value for e in village_experiences for code in e.interest_codes}
         matched = user_interests & village_interests
         if not matched:
             continue # 하나도 안 겹치면 추천 목록에서 제외

@@ -1,5 +1,7 @@
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, model_validator
 from datetime import date, datetime
+
+from app.models.enums import InterestCode
 
 
 class ExperienceCreate(BaseModel):
@@ -8,6 +10,7 @@ class ExperienceCreate(BaseModel):
     end_date: date
     price: int
     capacity: int
+    interests: list[InterestCode] = []
 
     @model_validator(mode = "after")
     def check_date_range(self):
@@ -30,6 +33,7 @@ class ExperienceResponse(ExperienceCreate):
     village_id: int
     created_date: datetime
     images: list[ImageResponse] = []
+    interests: list[InterestCode] = Field(default_factory = list, validation_alias = "interest_codes")
 
     class Config:
         from_attributes = True

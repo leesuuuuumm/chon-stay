@@ -5,8 +5,11 @@ import { useRouter } from "next/navigation";
 import AppHeader from "@/components/AppHeader";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
+import Chip from "@/components/ui/Chip";
 import { useAppStore } from "@/lib/store";
 import {
+  INTEREST_OPTIONS,
+  type InterestCode,
   createExperience,
   createLodging,
   extractErrorMessage,
@@ -28,6 +31,7 @@ type ExperienceDraft = {
   endDate: string;
   price: string;
   capacity: string;
+  interests: InterestCode[];
   images: File[];
   coverIndex: number;
 };
@@ -46,6 +50,7 @@ const emptyExperienceDraft: ExperienceDraft = {
   endDate: "",
   price: "",
   capacity: "",
+  interests: [],
   images: [],
   coverIndex: 0,
 };
@@ -57,6 +62,17 @@ const emptyLodgingDraft: LodgingDraft = {
   images: [],
   coverIndex: 0,
 };
+
+function missingFields(fields: [string, string][]) {
+  return fields.filter(([, value]) => !value).map(([label]) => label);
+}
+
+function interestLabels(codes: InterestCode[]) {
+  return codes
+    .map((code) => INTEREST_OPTIONS.find((o) => o.code === code)?.label)
+    .filter(Boolean)
+    .join(" · ");
+}
 
 function formatDateRange(startDate: string, endDate: string) {
   const format = (iso: string) => {
@@ -253,12 +269,21 @@ export default function HostOnboardingPage() {
     // "추가" 버튼을 누르지 않고 입력만 해둔 내용이 있으면, 그냥 무시되지 않도록 자동으로 포함시킨다.
     const experienceEntryStarted =
       experienceEntry.title || experienceEntry.startDate || experienceEntry.endDate ||
-      experienceEntry.price || experienceEntry.capacity;
+      experienceEntry.price || experienceEntry.capacity || experienceEntry.interests.length > 0;
     const experienceEntryComplete =
       experienceEntry.title && experienceEntry.startDate && experienceEntry.endDate &&
       experienceEntry.price && experienceEntry.capacity;
     if (experienceEntryStarted && !experienceEntryComplete) {
-      setFormError("작성 중인 체험 정보를 모두 입력하거나 비워주세요.");
+      const missing = missingFields([
+        ["체험 이름", experienceEntry.title],
+        ["시작일", experienceEntry.startDate],
+        ["종료일", experienceEntry.endDate],
+        ["가격", experienceEntry.price],
+        ["정원", experienceEntry.capacity],
+      ]);
+      setFormError(
+        `작성 중인 체험 정보가 비어 있어요: ${missing.join(", ")}. 모두 입력하거나 전부 비워주세요.`,
+      );
       return;
     }
     if (experienceEntryComplete && experienceEntry.endDate < experienceEntry.startDate) {
@@ -271,7 +296,15 @@ export default function HostOnboardingPage() {
     const lodgingEntryComplete =
       lodgingEntry.title && lodgingEntry.unit && lodgingEntry.price && lodgingEntry.capacity;
     if (lodgingEntryStarted && !lodgingEntryComplete) {
-      setFormError("작성 중인 숙소 정보를 모두 입력하거나 비워주세요.");
+      const missing = missingFields([
+        ["숙소 이름", lodgingEntry.title],
+        ["단위", lodgingEntry.unit],
+        ["가격", lodgingEntry.price],
+        ["정원", lodgingEntry.capacity],
+      ]);
+      setFormError(
+        `작성 중인 숙소 정보가 비어 있어요: ${missing.join(", ")}. 모두 입력하거나 전부 비워주세요.`,
+      );
       return;
     }
 
@@ -294,6 +327,7 @@ export default function HostOnboardingPage() {
           endDate: draft.endDate,
           price: Number(draft.price),
           capacity: Number(draft.capacity),
+          interests: draft.interests,
         });
         if (draft.images.length > 0) {
           await uploadExperienceImages(accessToken, experience.id, draft.images, draft.coverIndex);
@@ -470,6 +504,9 @@ export default function HostOnboardingPage() {
                         <p className="text-xs text-ink-faint">
                           {formatDateRange(e.start_date, e.end_date)} · 정원 {e.capacity}명
                         </p>
+                        {e.interests.length > 0 && (
+                          <p className="text-xs text-clay-600">{interestLabels(e.interests)}</p>
+                        )}
                       </div>
                       <span className="text-sm font-semibold">{e.price.toLocaleString()}원</span>
                     </div>
@@ -494,6 +531,9 @@ export default function HostOnboardingPage() {
                         <p className="text-xs text-ink-faint">
                           {formatDateRange(e.startDate, e.endDate)} · 정원 {e.capacity}명
                         </p>
+                        {e.interests.length > 0 && (
+                          <p className="text-xs text-clay-600">{interestLabels(e.interests)}</p>
+                        )}
                       </div>
                       <span className="text-sm font-semibold">{Number(e.price).toLocaleString()}원</span>
                     </div>
@@ -565,6 +605,30 @@ export default function HostOnboardingPage() {
                 placeholder="정원"
                 className="rounded-xl border border-line bg-white px-3 py-2.5 text-sm outline-none focus:border-clay-400"
               />
+            </div>
+            <div>
+              <p className="mb-1.5 text-xs text-ink-faint">
+                체험 성격 (복수 선택 · 선택하지 않으면 손님 추천에 노출되지 않아요)
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {INTEREST_OPTIONS.map((option) => (
+                  <Chip
+                    key={option.code}
+                    tone="clay"
+                    active={experienceEntry.interests.includes(option.code)}
+                    onClick={() =>
+                      setExperienceEntry((f) => ({
+                        ...f,
+                        interests: f.interests.includes(option.code)
+                          ? f.interests.filter((c) => c !== option.code)
+                          : [...f.interests, option.code],
+                      }))
+                    }
+                  >
+                    {option.label}
+                  </Chip>
+                ))}
+              </div>
             </div>
             <ImagePickerField
               images={experienceEntry.images}

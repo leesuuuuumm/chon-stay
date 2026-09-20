@@ -24,7 +24,9 @@ def create_experience(
     db: Session = Depends(get_db),
     village: Village = Depends(get_current_approved_village),
 ):
-    experience = Experience(village_id = village.id, **payload.model_dump())
+    data = payload.model_dump(exclude = {"interests"})
+    interest_code = {code.value for code in payload.interests} or None
+    experience = Experience(village_id = village.id, interest_code = interest_code, **data)
     db.add(experience)
     db.commit()
     db.refresh(experience)
