@@ -29,7 +29,7 @@ function LoginContent() {
       if (user.is_admin) {
         router.push('/admin');
       } else {
-        router.push(searchParams.get('redirect') || '/onboarding');
+        router.push(searchParams.get('redirect') || '/');
       }
     } catch (err) {
       setError(
