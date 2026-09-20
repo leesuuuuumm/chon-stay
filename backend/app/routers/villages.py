@@ -32,6 +32,10 @@ def signup_village(
     if not (registration_number.isdigit() and len(registration_number) == 10):
         raise HTTPException(status_code = 400, detail = "사업자 등록번호는 숫자 10자리여야 합니다.")
 
+    phone = "".join(ch for ch in phone if ch.isdigit())
+    if not (phone.startswith("010") and len(phone) == 11):
+        raise HTTPException(status_code = 400, detail = "연락처는 010-1234-5678 형식이어야 합니다.")
+
     if db.query(Village).filter(Village.user_id == current_user.id).first():
         raise HTTPException(status_code = 400, detail = "이미 마을 대표자 신청을 하셨습니다.")
 

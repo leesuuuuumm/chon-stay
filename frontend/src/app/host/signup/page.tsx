@@ -38,6 +38,17 @@ export default function HostSignupPage() {
   const update = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [key]: e.target.value }));
 
+  const updatePhone = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = e.target.value.replace(/\D/g, "").slice(0, 11);
+    const formatted =
+      digits.length > 7
+        ? `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`
+        : digits.length > 3
+          ? `${digits.slice(0, 3)}-${digits.slice(3)}`
+          : digits;
+    setForm((f) => ({ ...f, phone: formatted }));
+  };
+
   const updateRegistrationNumber = (e: React.ChangeEvent<HTMLInputElement>) => {
     const digitsOnly = e.target.value.replace(/\D/g, "").slice(0, 10);
     setForm((f) => ({ ...f, registrationNumber: digitsOnly }));
@@ -99,8 +110,11 @@ export default function HostSignupPage() {
           <input
             required
             value={form.phone}
-            onChange={update("phone")}
-            placeholder="연락처"
+            onChange={updatePhone}
+            type="tel"
+            inputMode="numeric"
+            maxLength={13}
+            placeholder="연락처 (010-1234-5678)"
             className="w-full rounded-xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-clay-400"
           />
           <input
@@ -149,12 +163,17 @@ export default function HostSignupPage() {
                 setError("대표자 서류를 업로드해주세요.");
                 return;
               }
+              const phoneDigits = form.phone.replace(/\D/g, "");
+              if (!/^010\d{8}$/.test(phoneDigits)) {
+                setError("연락처를 010-1234-5678 형식으로 입력해주세요.");
+                return;
+              }
               setError(null);
               setSubmitting(true);
               try {
                 await signupVillage(accessToken, {
                   representativeName: form.representativeName,
-                  phone: form.phone,
+                  phone: phoneDigits,
                   registrationNumber: form.registrationNumber,
                   document: documentFile,
                 });
