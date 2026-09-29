@@ -12,6 +12,8 @@ from app.core.uploads import save_photo
 from app.models.user import User
 from app.models.village import Village
 from app.schemas.village import VillageProfileUpdate, VillageResponse
+from app.models.region_code import RegionCode
+
 
 router = APIRouter()
 
@@ -73,17 +75,7 @@ def get_my_village_application(
     return village
 
 
-@router.patch("/me", response_model = VillageResponse)
-def update_my_village_profile(
-    payload: VillageProfileUpdate,
-    db: Session = Depends(get_db),
-    village: Village = Depends(get_current_approved_village),
-):
-    village.name = payload.name
-    village.description = payload.description
-    db.commit()
-    db.refresh(village)
-    return village
+
 
 
 @router.post("/me/photo", response_model = VillageResponse)
@@ -152,6 +144,28 @@ def reject_village(village_id: int, db: Session = Depends(get_db), admin: User =
 def get_population_index(village_id: int):
     # TODO: 생활인구 감소 심각도 지표 계산/시각화용 데이터
     return {"village_id": village_id, "index": None}
+
+
+
+@router.patch("/me", response_model = VillageResponse)
+def update_my_village_profile(
+    payload: VillageProfileUpdate,
+    db: Session = Depends(get_db),
+    village: Village = Depends(get_current_approved_village),
+):
+    village.name = payload.name
+    village.description = payload.description
+    if payload.sido and payload.sigungu:
+        region = db.query(RegionCode).filter(
+            RegionCode.sido == payload.sido,
+            RegionCode.sigungu == payload.sigungu
+        ).first()
+        if region:
+            village.area_cd = region.area_cd
+            village.signgu_cd = region.signgu_cd
+    db.commit()
+    db.refresh(village)
+    return village
 
 
 #

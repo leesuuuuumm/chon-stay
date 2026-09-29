@@ -20,6 +20,8 @@ import type { ListingImage, VillageDetail } from '@/lib/api';
 import { useAppStore } from '@/lib/store';
 import { diffDays, formatMonthDay } from '@/lib/dates';
 
+import NearbySection from '@/components/NearbySection';
+
 type Tab = '체험' | '숙박';
 
 function formatShortDate(iso: string) {
@@ -244,33 +246,41 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
                         className={`space-y-2 ${operating ? '' : 'opacity-60'}`}
                       >
                         <div
-                          className={photos.length ? 'cursor-pointer space-y-2' : 'space-y-2'}
+                          className={
+                            photos.length
+                              ? 'cursor-pointer space-y-2'
+                              : 'space-y-2'
+                          }
                           onClick={() =>
                             photos.length > 0 &&
                             setViewer({ title: exp.title, images: photos })
                           }
                         >
                           <CardPhoto images={photos} alt={exp.title} />
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="min-w-0 flex-1">
-                            <p className="font-semibold">{exp.title}</p>
-                            <p className="text-sm text-ink-soft">
-                              {exp.season ? `${exp.season} · ` : ''}
-                              {exp.price.toLocaleString()}원 · 정원{' '}
-                              {exp.capacity}명
-                            </p>
-                            <p className="text-xs text-ink-faint">
-                              운영 {formatShortDate(exp.start_date)} ~{' '}
-                              {formatShortDate(exp.end_date)}
-                              {!operating && ' · 선택한 날짜에는 운영하지 않아요'}
-                            </p>
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold">{exp.title}</p>
+                              <p className="text-sm text-ink-soft">
+                                {exp.season ? `${exp.season} · ` : ''}
+                                {exp.price.toLocaleString()}원 · 정원{' '}
+                                {exp.capacity}명
+                              </p>
+                              <p className="text-xs text-ink-faint">
+                                운영 {formatShortDate(exp.start_date)} ~{' '}
+                                {formatShortDate(exp.end_date)}
+                                {!operating &&
+                                  ' · 선택한 날짜에는 운영하지 않아요'}
+                              </p>
+                            </div>
                           </div>
-                        </div>
                         </div>
                         <button
                           type="button"
                           onClick={() =>
-                            setReviewView({ title: exp.title, target: { experienceId: exp.id } })
+                            setReviewView({
+                              title: exp.title,
+                              target: { experienceId: exp.id },
+                            })
                           }
                           className="text-xs font-semibold text-clay-600 underline underline-offset-2"
                         >
@@ -337,6 +347,10 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
                 </p>
               ))}
 
+            {tab === '체험' && (
+              <NearbySection villageId={village.id} visitDate={visitDate} />
+            )}
+
             {tab === '숙박' &&
               (village.lodgings.length ? (
                 <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-1">
@@ -359,7 +373,10 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
                       checkIn: string | null,
                       checkOut: string | null,
                     ) => {
-                      setStayDates((d) => ({ ...d, [itemId]: { checkIn, checkOut } }));
+                      setStayDates((d) => ({
+                        ...d,
+                        [itemId]: { checkIn, checkOut },
+                      }));
                       if (checkIn && checkOut) {
                         setCalendarOpen((o) => ({ ...o, [itemId]: false }));
                         if (lodgeCartItem) {
@@ -376,25 +393,35 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
                     return (
                       <Card key={lodge.id} className="space-y-3">
                         <div
-                          className={lodgePhotos.length ? 'cursor-pointer space-y-2' : 'space-y-2'}
+                          className={
+                            lodgePhotos.length
+                              ? 'cursor-pointer space-y-2'
+                              : 'space-y-2'
+                          }
                           onClick={() =>
                             lodgePhotos.length > 0 &&
-                            setViewer({ title: lodge.title, images: lodgePhotos })
+                            setViewer({
+                              title: lodge.title,
+                              images: lodgePhotos,
+                            })
                           }
                         >
                           <CardPhoto images={lodgePhotos} alt={lodge.title} />
-                        <div className="min-w-0">
-                          <p className="font-semibold">{lodge.title}</p>
-                          <p className="text-sm text-ink-soft">
-                            {lodge.unit} · {lodge.price.toLocaleString()}원 ·
-                            최대 {lodge.capacity}인
-                          </p>
-                        </div>
+                          <div className="min-w-0">
+                            <p className="font-semibold">{lodge.title}</p>
+                            <p className="text-sm text-ink-soft">
+                              {lodge.unit} · {lodge.price.toLocaleString()}원 ·
+                              최대 {lodge.capacity}인
+                            </p>
+                          </div>
                         </div>
                         <button
                           type="button"
                           onClick={() =>
-                            setReviewView({ title: lodge.title, target: { lodgingId: lodge.id } })
+                            setReviewView({
+                              title: lodge.title,
+                              target: { lodgingId: lodge.id },
+                            })
                           }
                           className="text-xs font-semibold text-clay-600 underline underline-offset-2"
                         >
@@ -408,7 +435,9 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
                                   {formatMonthDay(dates.checkIn)} 체크인 →{' '}
                                   {formatMonthDay(dates.checkOut)} 체크아웃
                                 </span>{' '}
-                                <span className="text-ink-soft">({nights}박)</span>
+                                <span className="text-ink-soft">
+                                  ({nights}박)
+                                </span>
                               </>
                             ) : (
                               <span className="text-ink-faint">
@@ -419,7 +448,10 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
                           <button
                             type="button"
                             onClick={() =>
-                              setCalendarOpen((o) => ({ ...o, [itemId]: !calendarShown }))
+                              setCalendarOpen((o) => ({
+                                ...o,
+                                [itemId]: !calendarShown,
+                              }))
                             }
                             className="shrink-0 text-xs text-ink-soft underline underline-offset-2"
                           >
@@ -462,7 +494,11 @@ function VillageDetailContent({ params }: { params: { id: string } }) {
                               })
                             }
                           >
-                            {inCart ? '담김' : nights === 0 ? '날짜 선택' : '담기'}
+                            {inCart
+                              ? '담김'
+                              : nights === 0
+                                ? '날짜 선택'
+                                : '담기'}
                           </Button>
                         </div>
                       </Card>

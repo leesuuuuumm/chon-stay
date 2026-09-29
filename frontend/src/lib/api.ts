@@ -118,7 +118,12 @@ export async function fetchMyVillageApplication(token: string) {
 
 export async function updateMyVillageProfile(
   token: string,
-  payload: { name: string; description: string },
+  payload: {
+    name: string;
+    description: string;
+    sido?: string;
+    sigungu?: string;
+  },
 ) {
   const { data } = await api.patch<VillageApplication>(
     '/api/villages/me',
@@ -616,5 +621,50 @@ export async function getVillageDetail(villageId: number) {
   const { data } = await api.get<VillageDetail>(
     `/api/villages/${villageId}/detail`,
   );
+  return data;
+}
+
+export type NearbyFestival = {
+  content_id: string;
+  title: string;
+  start_date: string; // YYYYMMDD
+  end_date: string; // YYYYMMDD
+  address: string | null;
+  image_url: string | null;
+};
+
+export type NearbySpot = {
+  content_id: string | null;
+  title: string;
+  category: string | null;
+  description: string | null;
+  address: string | null;
+  image_url: string | null;
+};
+
+export type VillageNearby = {
+  region: string | null;
+  source: 'tourapi' | 'csv';
+  festivals: NearbyFestival[];
+  spots: NearbySpot[];
+};
+
+// 마을 인근 축제·관광지 (TourAPI, 실패 시 관광지는 표준데이터 CSV)
+export async function getVillageNearby(villageId: number) {
+  const { data } = await api.get<VillageNearby>(
+    `/api/villages/${villageId}/nearby`,
+  );
+  return data;
+}
+
+export async function getSidoList() {
+  const { data } = await api.get<string[]>('/api/region-codes/sido');
+  return data;
+}
+
+export async function getSigunguList(sido: string) {
+  const { data } = await api.get<string[]>('/api/region-codes/sigungu', {
+    params: { sido },
+  });
   return data;
 }

@@ -5,7 +5,8 @@ from datetime import datetime
 class VillageProfileUpdate(BaseModel):
     name: str
     description: str
-
+    sido: str | None = None
+    sigungu: str | None = None
 
 class VillageResponse(BaseModel):
     id: int

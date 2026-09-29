@@ -1,12 +1,13 @@
-"use client";
+'use client';
 
-import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import AppHeader from "@/components/AppHeader";
-import Button from "@/components/ui/Button";
-import Card from "@/components/ui/Card";
-import Chip from "@/components/ui/Chip";
-import { useAppStore } from "@/lib/store";
+import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import AppHeader from '@/components/AppHeader';
+import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
+import Chip from '@/components/ui/Chip';
+import { useAppStore } from '@/lib/store';
+import { getSidoList, getSigunguList } from '@/lib/api';
 import {
   INTEREST_OPTIONS,
   type InterestCode,
@@ -23,7 +24,7 @@ import {
   type ExperienceListing,
   type LodgingListing,
   type VillageApplication,
-} from "@/lib/api";
+} from '@/lib/api';
 
 type ExperienceDraft = {
   title: string;
@@ -45,20 +46,20 @@ type LodgingDraft = {
 };
 
 const emptyExperienceDraft: ExperienceDraft = {
-  title: "",
-  startDate: "",
-  endDate: "",
-  price: "",
-  capacity: "",
+  title: '',
+  startDate: '',
+  endDate: '',
+  price: '',
+  capacity: '',
   interests: [],
   images: [],
   coverIndex: 0,
 };
 const emptyLodgingDraft: LodgingDraft = {
-  title: "",
-  unit: "",
-  price: "",
-  capacity: "",
+  title: '',
+  unit: '',
+  price: '',
+  capacity: '',
   images: [],
   coverIndex: 0,
 };
@@ -71,12 +72,12 @@ function interestLabels(codes: InterestCode[]) {
   return codes
     .map((code) => INTEREST_OPTIONS.find((o) => o.code === code)?.label)
     .filter(Boolean)
-    .join(" · ");
+    .join(' · ');
 }
 
 function formatDateRange(startDate: string, endDate: string) {
   const format = (iso: string) => {
-    const [, month, day] = iso.split("-");
+    const [, month, day] = iso.split('-');
     return `${Number(month)}월 ${Number(day)}일`;
   };
   return `${format(startDate)} ~ ${format(endDate)}`;
@@ -101,7 +102,7 @@ function ImagePickerField({
         onClick={() => inputRef.current?.click()}
         className="w-full rounded-xl border border-dashed border-line bg-white px-4 py-2.5 text-left text-sm text-ink-soft"
       >
-        + 사진 추가{images.length > 0 ? ` (${images.length}장)` : ""}
+        + 사진 추가{images.length > 0 ? ` (${images.length}장)` : ''}
       </button>
       <input
         ref={inputRef}
@@ -111,8 +112,9 @@ function ImagePickerField({
         className="hidden"
         onChange={(e) => {
           const newFiles = Array.from(e.target.files ?? []);
-          if (newFiles.length > 0) onChange([...images, ...newFiles], coverIndex);
-          e.target.value = "";
+          if (newFiles.length > 0)
+            onChange([...images, ...newFiles], coverIndex);
+          e.target.value = '';
         }}
       />
       {images.length > 0 && (
@@ -124,11 +126,15 @@ function ImagePickerField({
                   type="button"
                   onClick={() => onChange(images, i)}
                   className={`h-16 w-16 overflow-hidden rounded-lg border-2 ${
-                    i === coverIndex ? "border-clay-400" : "border-line"
+                    i === coverIndex ? 'border-clay-400' : 'border-line'
                   }`}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={URL.createObjectURL(file)} alt="" className="h-full w-full object-cover" />
+                  <img
+                    src={URL.createObjectURL(file)}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
                 </button>
                 {i === coverIndex && (
                   <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-clay-400 px-1.5 py-0.5 text-[10px] font-semibold text-white">
@@ -140,7 +146,11 @@ function ImagePickerField({
                   onClick={() => {
                     const next = images.filter((_, idx) => idx !== i);
                     const nextCover =
-                      i === coverIndex ? 0 : coverIndex > i ? coverIndex - 1 : coverIndex;
+                      i === coverIndex
+                        ? 0
+                        : coverIndex > i
+                          ? coverIndex - 1
+                          : coverIndex;
                     onChange(next, nextCover);
                   }}
                   className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-ink-soft text-[10px] text-white"
@@ -150,7 +160,9 @@ function ImagePickerField({
               </div>
             ))}
           </div>
-          <p className="text-xs text-ink-faint">사진을 눌러 대표 사진으로 지정할 수 있어요.</p>
+          <p className="text-xs text-ink-faint">
+            사진을 눌러 대표 사진으로 지정할 수 있어요.
+          </p>
         </>
       )}
     </div>
@@ -164,17 +176,27 @@ export default function HostOnboardingPage() {
   const [checkingStatus, setCheckingStatus] = useState(true);
   const [statusError, setStatusError] = useState<string | null>(null);
 
-  const [savedExperiences, setSavedExperiences] = useState<ExperienceListing[]>([]);
+  const [savedExperiences, setSavedExperiences] = useState<ExperienceListing[]>(
+    [],
+  );
   const [savedLodgings, setSavedLodgings] = useState<LodgingListing[]>([]);
 
-  const [villageName, setVillageName] = useState("");
-  const [villageDescription, setVillageDescription] = useState("");
+  const [villageName, setVillageName] = useState('');
+  const [villageDescription, setVillageDescription] = useState('');
   const [villagePhotoFile, setVillagePhotoFile] = useState<File | null>(null);
+  const [sidoList, setSidoList] = useState<string[]>([]);
+  const [sigunguList, setSigunguList] = useState<string[]>([]);
+  const [sido, setSido] = useState('');
+  const [sigungu, setSigungu] = useState('');
   const villagePhotoInputRef = useRef<HTMLInputElement>(null);
-  const [experienceDrafts, setExperienceDrafts] = useState<ExperienceDraft[]>([]);
+  const [experienceDrafts, setExperienceDrafts] = useState<ExperienceDraft[]>(
+    [],
+  );
   const [lodgingDrafts, setLodgingDrafts] = useState<LodgingDraft[]>([]);
-  const [experienceEntry, setExperienceEntry] = useState<ExperienceDraft>(emptyExperienceDraft);
-  const [lodgingEntry, setLodgingEntry] = useState<LodgingDraft>(emptyLodgingDraft);
+  const [experienceEntry, setExperienceEntry] =
+    useState<ExperienceDraft>(emptyExperienceDraft);
+  const [lodgingEntry, setLodgingEntry] =
+    useState<LodgingDraft>(emptyLodgingDraft);
   const [editingExperience, setEditingExperience] = useState(false);
   const [editingLodging, setEditingLodging] = useState(false);
 
@@ -184,28 +206,47 @@ export default function HostOnboardingPage() {
   useEffect(() => {
     if (!hydrated) return;
     if (!accessToken) {
-      router.replace("/login?redirect=/host/onboarding");
+      router.replace('/login?redirect=/host/onboarding');
       return;
     }
     fetchMyVillageApplication(accessToken)
       .then(async (application) => {
         if (!application) {
-          router.replace("/host/signup");
+          router.replace('/host/signup');
           return;
         }
         setVillage(application);
-        setVillageName(application.name ?? "");
-        setVillageDescription(application.description ?? "");
-        if (application.status === "approved") {
+        setVillageName(application.name ?? '');
+        setVillageDescription(application.description ?? '');
+        if (application.status === 'approved') {
           const listings = await fetchMyListings(accessToken);
           setSavedExperiences(listings.experiences);
           setSavedLodgings(listings.lodgings);
         }
       })
-      .catch((err) => setStatusError(extractErrorMessage(err, "심사 상태를 불러오지 못했어요.")))
+      .catch((err) =>
+        setStatusError(
+          extractErrorMessage(err, '심사 상태를 불러오지 못했어요.'),
+        ),
+      )
       .finally(() => setCheckingStatus(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated, accessToken]);
+  useEffect(() => {
+    getSidoList()
+      .then(setSidoList)
+      .catch(() => setSidoList([]));
+  }, []);
+
+  useEffect(() => {
+    if (!sido) {
+      setSigunguList([]);
+      return;
+    }
+    getSigunguList(sido)
+      .then(setSigunguList)
+      .catch(() => setSigunguList([]));
+  }, [sido]);
 
   const addExperienceDraft = () => {
     if (
@@ -215,11 +256,11 @@ export default function HostOnboardingPage() {
       !experienceEntry.price ||
       !experienceEntry.capacity
     ) {
-      setFormError("체험 정보를 모두 입력해주세요.");
+      setFormError('체험 정보를 모두 입력해주세요.');
       return;
     }
     if (experienceEntry.endDate < experienceEntry.startDate) {
-      setFormError("종료일은 시작일보다 빠를 수 없어요.");
+      setFormError('종료일은 시작일보다 빠를 수 없어요.');
       return;
     }
     setFormError(null);
@@ -229,8 +270,13 @@ export default function HostOnboardingPage() {
   };
 
   const addLodgingDraft = () => {
-    if (!lodgingEntry.title || !lodgingEntry.unit || !lodgingEntry.price || !lodgingEntry.capacity) {
-      setFormError("숙소 정보를 모두 입력해주세요.");
+    if (
+      !lodgingEntry.title ||
+      !lodgingEntry.unit ||
+      !lodgingEntry.price ||
+      !lodgingEntry.capacity
+    ) {
+      setFormError('숙소 정보를 모두 입력해주세요.');
       return;
     }
     setFormError(null);
@@ -262,48 +308,64 @@ export default function HostOnboardingPage() {
   const handleSubmitAll = async () => {
     if (!accessToken) return;
     if (!villageName || !villageDescription) {
-      setFormError("마을 이름과 소개를 입력해주세요.");
+      setFormError('마을 이름과 소개를 입력해주세요.');
       return;
     }
 
     // "추가" 버튼을 누르지 않고 입력만 해둔 내용이 있으면, 그냥 무시되지 않도록 자동으로 포함시킨다.
     const experienceEntryStarted =
-      experienceEntry.title || experienceEntry.startDate || experienceEntry.endDate ||
-      experienceEntry.price || experienceEntry.capacity || experienceEntry.interests.length > 0;
+      experienceEntry.title ||
+      experienceEntry.startDate ||
+      experienceEntry.endDate ||
+      experienceEntry.price ||
+      experienceEntry.capacity ||
+      experienceEntry.interests.length > 0;
     const experienceEntryComplete =
-      experienceEntry.title && experienceEntry.startDate && experienceEntry.endDate &&
-      experienceEntry.price && experienceEntry.capacity;
+      experienceEntry.title &&
+      experienceEntry.startDate &&
+      experienceEntry.endDate &&
+      experienceEntry.price &&
+      experienceEntry.capacity;
     if (experienceEntryStarted && !experienceEntryComplete) {
       const missing = missingFields([
-        ["체험 이름", experienceEntry.title],
-        ["시작일", experienceEntry.startDate],
-        ["종료일", experienceEntry.endDate],
-        ["가격", experienceEntry.price],
-        ["정원", experienceEntry.capacity],
+        ['체험 이름', experienceEntry.title],
+        ['시작일', experienceEntry.startDate],
+        ['종료일', experienceEntry.endDate],
+        ['가격', experienceEntry.price],
+        ['정원', experienceEntry.capacity],
       ]);
       setFormError(
-        `작성 중인 체험 정보가 비어 있어요: ${missing.join(", ")}. 모두 입력하거나 전부 비워주세요.`,
+        `작성 중인 체험 정보가 비어 있어요: ${missing.join(', ')}. 모두 입력하거나 전부 비워주세요.`,
       );
       return;
     }
-    if (experienceEntryComplete && experienceEntry.endDate < experienceEntry.startDate) {
-      setFormError("종료일은 시작일보다 빠를 수 없어요.");
+    if (
+      experienceEntryComplete &&
+      experienceEntry.endDate < experienceEntry.startDate
+    ) {
+      setFormError('종료일은 시작일보다 빠를 수 없어요.');
       return;
     }
 
     const lodgingEntryStarted =
-      lodgingEntry.title || lodgingEntry.unit || lodgingEntry.price || lodgingEntry.capacity;
+      lodgingEntry.title ||
+      lodgingEntry.unit ||
+      lodgingEntry.price ||
+      lodgingEntry.capacity;
     const lodgingEntryComplete =
-      lodgingEntry.title && lodgingEntry.unit && lodgingEntry.price && lodgingEntry.capacity;
+      lodgingEntry.title &&
+      lodgingEntry.unit &&
+      lodgingEntry.price &&
+      lodgingEntry.capacity;
     if (lodgingEntryStarted && !lodgingEntryComplete) {
       const missing = missingFields([
-        ["숙소 이름", lodgingEntry.title],
-        ["단위", lodgingEntry.unit],
-        ["가격", lodgingEntry.price],
-        ["정원", lodgingEntry.capacity],
+        ['숙소 이름', lodgingEntry.title],
+        ['단위', lodgingEntry.unit],
+        ['가격', lodgingEntry.price],
+        ['정원', lodgingEntry.capacity],
       ]);
       setFormError(
-        `작성 중인 숙소 정보가 비어 있어요: ${missing.join(", ")}. 모두 입력하거나 전부 비워주세요.`,
+        `작성 중인 숙소 정보가 비어 있어요: ${missing.join(', ')}. 모두 입력하거나 전부 비워주세요.`,
       );
       return;
     }
@@ -311,12 +373,19 @@ export default function HostOnboardingPage() {
     const allExperienceDrafts = experienceEntryComplete
       ? [...experienceDrafts, experienceEntry]
       : experienceDrafts;
-    const allLodgingDrafts = lodgingEntryComplete ? [...lodgingDrafts, lodgingEntry] : lodgingDrafts;
+    const allLodgingDrafts = lodgingEntryComplete
+      ? [...lodgingDrafts, lodgingEntry]
+      : lodgingDrafts;
 
     setFormError(null);
     setSubmitting(true);
     try {
-      await updateMyVillageProfile(accessToken, { name: villageName, description: villageDescription });
+      await updateMyVillageProfile(accessToken, {
+        name: villageName,
+        description: villageDescription,
+        sido,
+        sigungu,
+      });
       if (villagePhotoFile) {
         await uploadMyVillagePhoto(accessToken, villagePhotoFile);
       }
@@ -330,7 +399,12 @@ export default function HostOnboardingPage() {
           interests: draft.interests,
         });
         if (draft.images.length > 0) {
-          await uploadExperienceImages(accessToken, experience.id, draft.images, draft.coverIndex);
+          await uploadExperienceImages(
+            accessToken,
+            experience.id,
+            draft.images,
+            draft.coverIndex,
+          );
         }
       }
       for (const draft of allLodgingDrafts) {
@@ -341,12 +415,22 @@ export default function HostOnboardingPage() {
           capacity: Number(draft.capacity),
         });
         if (draft.images.length > 0) {
-          await uploadLodgingImages(accessToken, lodging.id, draft.images, draft.coverIndex);
+          await uploadLodgingImages(
+            accessToken,
+            lodging.id,
+            draft.images,
+            draft.coverIndex,
+          );
         }
       }
       router.push("/mypage");
     } catch (err) {
-      setFormError(extractErrorMessage(err, "저장에 실패했어요. 잠시 후 다시 시도해주세요."));
+      setFormError(
+        extractErrorMessage(
+          err,
+          '저장에 실패했어요. 잠시 후 다시 시도해주세요.',
+        ),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -376,7 +460,7 @@ export default function HostOnboardingPage() {
     );
   }
 
-  if (village?.status === "pending") {
+  if (village?.status === 'pending') {
     return (
       <>
         <AppHeader title="마을 정보 등록" />
@@ -387,14 +471,15 @@ export default function HostOnboardingPage() {
             검토중이에요
           </h2>
           <p className="mt-3 text-sm text-ink-soft">
-            제출하신 서류를 확인하고 있어요. 승인되면 마을·체험·숙박 정보를 등록할 수 있어요. (1~2일 소요)
+            제출하신 서류를 확인하고 있어요. 승인되면 마을·체험·숙박 정보를
+            등록할 수 있어요. (1~2일 소요)
           </p>
         </div>
       </>
     );
   }
 
-  if (village?.status === "rejected") {
+  if (village?.status === 'rejected') {
     return (
       <>
         <AppHeader title="마을 정보 등록" />
@@ -405,7 +490,8 @@ export default function HostOnboardingPage() {
             거절됐어요
           </h2>
           <p className="mt-3 text-sm text-ink-soft">
-            제출하신 서류로는 대표자 자격을 확인할 수 없었어요. 서류를 다시 확인해 재신청해주세요.
+            제출하신 서류로는 대표자 자격을 확인할 수 없었어요. 서류를 다시
+            확인해 재신청해주세요.
           </p>
         </div>
       </>
@@ -428,7 +514,9 @@ export default function HostOnboardingPage() {
         </div>
 
         {formError && (
-          <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{formError}</div>
+          <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
+            {formError}
+          </div>
         )}
 
         <div>
@@ -446,6 +534,45 @@ export default function HostOnboardingPage() {
               placeholder="마을 소개"
               className="h-24 w-full resize-none rounded-xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-clay-400"
             />
+            <div className="grid grid-cols-2 gap-2">
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-ink-faint">시/도</span>
+                <select
+                  value={sido}
+                  onChange={(e) => {
+                    setSido(e.target.value);
+                    setSigungu('');
+                  }}
+                  className="rounded-xl border border-line bg-white px-3 py-2.5 text-sm outline-none focus:border-clay-400"
+                >
+                  <option value="">선택</option>
+                  {sidoList.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-ink-faint">시/군/구</span>
+                <select
+                  value={sigungu}
+                  onChange={(e) => setSigungu(e.target.value)}
+                  disabled={!sido}
+                  className="rounded-xl border border-line bg-white px-3 py-2.5 text-sm outline-none focus:border-clay-400 disabled:bg-sand disabled:text-ink-faint"
+                >
+                  <option value="">선택</option>
+                  {sigunguList.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <p className="text-xs text-ink-faint">
+              소재지 정보는 인구감소지역 우선추천 등 서비스 매칭에 활용돼요.
+            </p>
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -467,10 +594,12 @@ export default function HostOnboardingPage() {
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  "+ 사진"
+                  '+ 사진'
                 )}
               </button>
-              <p className="flex-1 text-xs text-ink-faint">마을을 대표하는 사진 한 장을 올려주세요.</p>
+              <p className="flex-1 text-xs text-ink-faint">
+                마을을 대표하는 사진 한 장을 올려주세요.
+              </p>
             </div>
             <input
               ref={villagePhotoInputRef}
@@ -487,9 +616,13 @@ export default function HostOnboardingPage() {
           {(savedExperiences.length > 0 || experienceDrafts.length > 0) && (
             <div className="mb-3 space-y-2">
               {savedExperiences.map((e) => {
-                const cover = e.images.find((img) => img.is_cover) ?? e.images[0];
+                const cover =
+                  e.images.find((img) => img.is_cover) ?? e.images[0];
                 return (
-                  <Card key={`saved-${e.id}`} className="flex items-center gap-3">
+                  <Card
+                    key={`saved-${e.id}`}
+                    className="flex items-center gap-3"
+                  >
                     {cover && (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -502,13 +635,18 @@ export default function HostOnboardingPage() {
                       <div>
                         <p className="font-semibold">{e.title}</p>
                         <p className="text-xs text-ink-faint">
-                          {formatDateRange(e.start_date, e.end_date)} · 정원 {e.capacity}명
+                          {formatDateRange(e.start_date, e.end_date)} · 정원{' '}
+                          {e.capacity}명
                         </p>
                         {e.interests.length > 0 && (
-                          <p className="text-xs text-clay-600">{interestLabels(e.interests)}</p>
+                          <p className="text-xs text-clay-600">
+                            {interestLabels(e.interests)}
+                          </p>
                         )}
                       </div>
-                      <span className="text-sm font-semibold">{e.price.toLocaleString()}원</span>
+                      <span className="text-sm font-semibold">
+                        {e.price.toLocaleString()}원
+                      </span>
                     </div>
                   </Card>
                 );
@@ -516,7 +654,10 @@ export default function HostOnboardingPage() {
               {experienceDrafts.map((e, i) => {
                 const cover = e.images[e.coverIndex];
                 return (
-                  <Card key={`draft-${i}`} className="flex items-center gap-3 border-dashed">
+                  <Card
+                    key={`draft-${i}`}
+                    className="flex items-center gap-3 border-dashed"
+                  >
                     {cover && (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -527,15 +668,25 @@ export default function HostOnboardingPage() {
                     )}
                     <div className="flex flex-1 items-center justify-between">
                       <div>
-                        <p className="font-semibold">{e.title} <span className="text-xs font-normal text-ink-faint">(저장 대기)</span></p>
+                        <p className="font-semibold">
+                          {e.title}{' '}
+                          <span className="text-xs font-normal text-ink-faint">
+                            (저장 대기)
+                          </span>
+                        </p>
                         <p className="text-xs text-ink-faint">
-                          {formatDateRange(e.startDate, e.endDate)} · 정원 {e.capacity}명
+                          {formatDateRange(e.startDate, e.endDate)} · 정원{' '}
+                          {e.capacity}명
                         </p>
                         {e.interests.length > 0 && (
-                          <p className="text-xs text-clay-600">{interestLabels(e.interests)}</p>
+                          <p className="text-xs text-clay-600">
+                            {interestLabels(e.interests)}
+                          </p>
                         )}
                       </div>
-                      <span className="text-sm font-semibold">{Number(e.price).toLocaleString()}원</span>
+                      <span className="text-sm font-semibold">
+                        {Number(e.price).toLocaleString()}원
+                      </span>
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1">
                       <button
@@ -561,7 +712,9 @@ export default function HostOnboardingPage() {
           <div className="space-y-2 rounded-xl border border-dashed border-line p-3">
             <input
               value={experienceEntry.title}
-              onChange={(ev) => setExperienceEntry((f) => ({ ...f, title: ev.target.value }))}
+              onChange={(ev) =>
+                setExperienceEntry((f) => ({ ...f, title: ev.target.value }))
+              }
               placeholder="체험 이름 (예: 모내기 체험)"
               className="w-full rounded-xl border border-line bg-white px-4 py-2.5 text-sm outline-none focus:border-clay-400"
             />
@@ -571,7 +724,12 @@ export default function HostOnboardingPage() {
                 <input
                   type="date"
                   value={experienceEntry.startDate}
-                  onChange={(ev) => setExperienceEntry((f) => ({ ...f, startDate: ev.target.value }))}
+                  onChange={(ev) =>
+                    setExperienceEntry((f) => ({
+                      ...f,
+                      startDate: ev.target.value,
+                    }))
+                  }
                   className="rounded-xl border border-line bg-white px-3 py-2.5 text-sm outline-none focus:border-clay-400"
                 />
               </label>
@@ -581,7 +739,12 @@ export default function HostOnboardingPage() {
                   type="date"
                   value={experienceEntry.endDate}
                   min={experienceEntry.startDate || undefined}
-                  onChange={(ev) => setExperienceEntry((f) => ({ ...f, endDate: ev.target.value }))}
+                  onChange={(ev) =>
+                    setExperienceEntry((f) => ({
+                      ...f,
+                      endDate: ev.target.value,
+                    }))
+                  }
                   className="rounded-xl border border-line bg-white px-3 py-2.5 text-sm outline-none focus:border-clay-400"
                 />
               </label>
@@ -590,7 +753,10 @@ export default function HostOnboardingPage() {
               <input
                 value={experienceEntry.price}
                 onChange={(ev) =>
-                  setExperienceEntry((f) => ({ ...f, price: ev.target.value.replace(/\D/g, "") }))
+                  setExperienceEntry((f) => ({
+                    ...f,
+                    price: ev.target.value.replace(/\D/g, ''),
+                  }))
                 }
                 inputMode="numeric"
                 placeholder="가격"
@@ -599,7 +765,10 @@ export default function HostOnboardingPage() {
               <input
                 value={experienceEntry.capacity}
                 onChange={(ev) =>
-                  setExperienceEntry((f) => ({ ...f, capacity: ev.target.value.replace(/\D/g, "") }))
+                  setExperienceEntry((f) => ({
+                    ...f,
+                    capacity: ev.target.value.replace(/\D/g, ''),
+                  }))
                 }
                 inputMode="numeric"
                 placeholder="정원"
@@ -608,7 +777,8 @@ export default function HostOnboardingPage() {
             </div>
             <div>
               <p className="mb-1.5 text-xs text-ink-faint">
-                체험 성격 (복수 선택 · 선택하지 않으면 손님 추천에 노출되지 않아요)
+                체험 성격 (복수 선택 · 선택하지 않으면 손님 추천에 노출되지
+                않아요)
               </p>
               <div className="flex flex-wrap gap-2">
                 {INTEREST_OPTIONS.map((option) => (
@@ -638,7 +808,7 @@ export default function HostOnboardingPage() {
               }
             />
             <Button variant="outline" size="md" onClick={addExperienceDraft}>
-              {editingExperience ? "수정 완료" : "체험 추가"}
+              {editingExperience ? '수정 완료' : '체험 추가'}
             </Button>
           </div>
         </div>
@@ -648,9 +818,13 @@ export default function HostOnboardingPage() {
           {(savedLodgings.length > 0 || lodgingDrafts.length > 0) && (
             <div className="mb-3 space-y-2">
               {savedLodgings.map((l) => {
-                const cover = l.images.find((img) => img.is_cover) ?? l.images[0];
+                const cover =
+                  l.images.find((img) => img.is_cover) ?? l.images[0];
                 return (
-                  <Card key={`saved-${l.id}`} className="flex items-center gap-3">
+                  <Card
+                    key={`saved-${l.id}`}
+                    className="flex items-center gap-3"
+                  >
                     {cover && (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -666,7 +840,9 @@ export default function HostOnboardingPage() {
                           {l.unit} · 정원 {l.capacity}명
                         </p>
                       </div>
-                      <span className="text-sm font-semibold">{l.price.toLocaleString()}원</span>
+                      <span className="text-sm font-semibold">
+                        {l.price.toLocaleString()}원
+                      </span>
                     </div>
                   </Card>
                 );
@@ -674,7 +850,10 @@ export default function HostOnboardingPage() {
               {lodgingDrafts.map((l, i) => {
                 const cover = l.images[l.coverIndex];
                 return (
-                  <Card key={`draft-${i}`} className="flex items-center gap-3 border-dashed">
+                  <Card
+                    key={`draft-${i}`}
+                    className="flex items-center gap-3 border-dashed"
+                  >
                     {cover && (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -685,12 +864,19 @@ export default function HostOnboardingPage() {
                     )}
                     <div className="flex flex-1 items-center justify-between">
                       <div>
-                        <p className="font-semibold">{l.title} <span className="text-xs font-normal text-ink-faint">(저장 대기)</span></p>
+                        <p className="font-semibold">
+                          {l.title}{' '}
+                          <span className="text-xs font-normal text-ink-faint">
+                            (저장 대기)
+                          </span>
+                        </p>
                         <p className="text-xs text-ink-faint">
                           {l.unit} · 정원 {l.capacity}명
                         </p>
                       </div>
-                      <span className="text-sm font-semibold">{Number(l.price).toLocaleString()}원</span>
+                      <span className="text-sm font-semibold">
+                        {Number(l.price).toLocaleString()}원
+                      </span>
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1">
                       <button
@@ -716,21 +902,28 @@ export default function HostOnboardingPage() {
           <div className="space-y-2 rounded-xl border border-dashed border-line p-3">
             <input
               value={lodgingEntry.title}
-              onChange={(ev) => setLodgingEntry((f) => ({ ...f, title: ev.target.value }))}
+              onChange={(ev) =>
+                setLodgingEntry((f) => ({ ...f, title: ev.target.value }))
+              }
               placeholder="숙소 이름 (예: 두레민박)"
               className="w-full rounded-xl border border-line bg-white px-4 py-2.5 text-sm outline-none focus:border-clay-400"
             />
             <div className="grid grid-cols-3 gap-2">
               <input
                 value={lodgingEntry.unit}
-                onChange={(ev) => setLodgingEntry((f) => ({ ...f, unit: ev.target.value }))}
+                onChange={(ev) =>
+                  setLodgingEntry((f) => ({ ...f, unit: ev.target.value }))
+                }
                 placeholder="단위 (예: 1박)"
                 className="rounded-xl border border-line bg-white px-3 py-2.5 text-sm outline-none focus:border-clay-400"
               />
               <input
                 value={lodgingEntry.price}
                 onChange={(ev) =>
-                  setLodgingEntry((f) => ({ ...f, price: ev.target.value.replace(/\D/g, "") }))
+                  setLodgingEntry((f) => ({
+                    ...f,
+                    price: ev.target.value.replace(/\D/g, ''),
+                  }))
                 }
                 inputMode="numeric"
                 placeholder="가격"
@@ -739,7 +932,10 @@ export default function HostOnboardingPage() {
               <input
                 value={lodgingEntry.capacity}
                 onChange={(ev) =>
-                  setLodgingEntry((f) => ({ ...f, capacity: ev.target.value.replace(/\D/g, "") }))
+                  setLodgingEntry((f) => ({
+                    ...f,
+                    capacity: ev.target.value.replace(/\D/g, ''),
+                  }))
                 }
                 inputMode="numeric"
                 placeholder="정원"
@@ -754,14 +950,18 @@ export default function HostOnboardingPage() {
               }
             />
             <Button variant="outline" size="md" onClick={addLodgingDraft}>
-              {editingLodging ? "수정 완료" : "숙소 추가"}
+              {editingLodging ? '수정 완료' : '숙소 추가'}
             </Button>
           </div>
         </div>
 
         <div className="mt-auto pt-4">
-          <Button variant="accent" disabled={submitting} onClick={handleSubmitAll}>
-            {submitting ? "저장 중..." : "정보 저장하고 시작하기"}
+          <Button
+            variant="accent"
+            disabled={submitting}
+            onClick={handleSubmitAll}
+          >
+            {submitting ? '저장 중...' : '정보 저장하고 시작하기'}
           </Button>
         </div>
       </div>
