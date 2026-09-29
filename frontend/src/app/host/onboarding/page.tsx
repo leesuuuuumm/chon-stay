@@ -344,7 +344,7 @@ export default function HostOnboardingPage() {
           await uploadLodgingImages(accessToken, lodging.id, draft.images, draft.coverIndex);
         }
       }
-      router.push("/host/dashboard");
+      router.push("/mypage");
     } catch (err) {
       setFormError(extractErrorMessage(err, "저장에 실패했어요. 잠시 후 다시 시도해주세요."));
     } finally {
